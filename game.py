@@ -143,7 +143,7 @@ class Game:
         
         # Tải nhạc menu
         try:
-            self.menu_music = pygame.mixer.Sound('assests/sfx/menusfx/Woodland Fantasy.mp3')
+            self.menu_music = pygame.mixer.Sound('assests/sfx/menusfx/NinjaSchool.mp3')
             self.menu_music.set_volume(self.volume / 100.0)  # Thiết lập âm lượng ban đầu (0.0 - 1.0)
             self.music_playing = False  # Trạng thái đang phát nhạc
         except pygame.error as e:
@@ -155,10 +155,23 @@ class Game:
         self.effect_volume = 70  # Mức âm lượng hiệu ứng mặc định (0-100)
         self.dragging_effect_slider = False  # Trạng thái đang kéo thanh trượt hiệu ứng
         
-        # Biến theo dõi thời gian nhấn nút để tránh click quá nhanh (cooldown 0.4 giây)
+        # Biến theo dõi thời gian nhấn nút để tránh click quá nhanh (cooldown 0.5 giây)
         self.sound_button_last_click = 0
         self.effect_button_last_click = 0
-        self.button_cooldown = 400  #0.4s
+        self.button_cooldown = 500  # 500ms = 0.5 giây
+        
+        # Tải hình ảnh cho màn hình chọn màn chơi
+        try:
+            self.level_frame = pygame.image.load('assests/gui/PNG/level_select/bg.png').convert_alpha()
+            self.level_star = pygame.image.load('assests/gui/PNG/level_select/star_4.png').convert_alpha()
+            self.level_lock = pygame.image.load('assests/gui/PNG/level_select/lock.png').convert_alpha()
+        except pygame.error as e:
+            print(f"Không thể tải hình ảnh cho màn hình chọn màn chơi: {e}")
+        
+        # Danh sách màn chơi đã mở khóa (ban đầu chỉ mở màn 1)
+        self.unlocked_levels = [1]
+        # Màn chơi hiện tại
+        self.current_level = 1
         
         # Tải hình ảnh
         try:
@@ -199,6 +212,11 @@ class Game:
         self.font_small = pygame.font.Font('assests/font/Arial.ttf', 36)
         self.font_title = pygame.font.Font('assests/font/Arial.ttf', 50)
         self.font_small2 = pygame.font.Font('assests/font/Arial.ttf', 20)
+        self.font_level = pygame.font.Font('assests/font/Arial.ttf', 70)
+        self.font_level.set_bold(True)
+        self.font_title.set_bold(True)
+
+
 
 
     def create_clouds(self):
@@ -339,8 +357,8 @@ class Game:
         # Vẽ các nút menu
         if self.play_button.draw():
             print("Nút Play được nhấn!")
-            # Thay đổi trạng thái game
-            self.state = "game"
+            # Thay đổi trạng thái game sang màn hình chọn màn chơi
+            self.state = "level_select"
             
         if self.setting_button.draw():
             print("Nút Setting được nhấn!")
@@ -369,6 +387,80 @@ class Game:
             print("Nút Quit được nhấn!")
             # Hiển thị hộp thoại xác nhận thoát
             self.show_quit_dialog = True
+
+    def draw_level_select(self):
+        button_scale = 0.25
+        button_x = 0 #Vị trí đầu màn hình
+        
+        # Nút quay lại ở góc dưới bên trái
+        self.back_btn_level = Button(self, 'assests/gui/PNG/btn/prew.png', 
+                                     button_x+90, self.screen_height-90, button_scale*1.2)
+        
+        # Kiểm tra nếu nút quay lại được nhấn
+        if self.back_btn_level.draw():
+            print("Nút quay lại từ màn hình chọn màn chơi được nhấn!")
+            self.state = "menu"
+
+        # Vẽ tiêu đề
+        title_text = self.font_title.render("CHỌN MÀN CHƠI", True, self.white)
+        title_rect = title_text.get_rect(center=(self.screen_width // 2, 80))
+        self.screen.blit(title_text, title_rect)
+        
+        # Thiết lập kích thước và bố trí màn chơi
+        level_width = 200
+        level_height = 180
+        padding_x = 40
+        padding_y = 50
+        
+        # Tính toán vị trí bắt đầu để căn giữa lưới màn chơi
+        total_width = 3 * level_width + 2 * padding_x
+        total_height = 2 * level_height + padding_y
+        start_x = (self.screen_width - total_width) // 2
+        start_y = 150
+        
+        # Vẽ các màn chơi (2 hàng, mỗi hàng 3 màn)
+        for row in range(2):
+            for col in range(3):
+                level_number = row * 3 + col + 1  # Số màn chơi từ 1-6
+                level_x = start_x + col * (level_width + padding_x)
+                level_y = start_y + row * (level_height + padding_y)
+                
+                # Vẽ khung màn chơi
+                frame = pygame.transform.scale(self.level_frame, (level_width, level_height))
+                self.screen.blit(frame, (level_x, level_y))
+                
+                # Kiểm tra nếu màn chơi đã mở khóa
+                if level_number in self.unlocked_levels:
+                    # Vẽ số màn chơi
+                    number_text = self.font_level.render(f"{level_number}", True, self.white)
+                    number_rect = number_text.get_rect(center=(level_x + level_width // 2 - 5, level_y + 70))
+                    self.screen.blit(number_text, number_rect)
+                    
+                    # Vẽ sao đánh giá
+                    star = pygame.transform.scale(self.level_star, (150, 70))
+                    star_rect = star.get_rect(center=(level_x + level_width // 2, level_y + 140))
+                    self.screen.blit(star, star_rect)
+                else:
+                    # Vẽ ổ khóa nếu màn chơi chưa mở
+                    lock = pygame.transform.scale(self.level_lock, (80, 80))
+                    lock_rect = lock.get_rect(center=(level_x + level_width // 2, level_y + level_height // 2))
+                    self.screen.blit(lock, lock_rect)
+                
+                # Xử lý sự kiện khi nhấn vào màn chơi
+                level_rect = pygame.Rect(level_x, level_y, level_width, level_height)
+                mouse_pos = pygame.mouse.get_pos()
+                mouse_clicked = pygame.mouse.get_pressed()[0]
+                
+                if level_rect.collidepoint(mouse_pos):
+                    # Hiệu ứng hover
+                    if level_number in self.unlocked_levels:
+                        pygame.draw.rect(self.screen, (255, 255, 255, 50), level_rect, 4, border_radius=10)
+                    
+                    # Xử lý khi click vào màn đã mở khóa
+                    if mouse_clicked and level_number in self.unlocked_levels:
+                        print(f"Chọn màn chơi {level_number}")
+                        self.current_level = level_number
+                        self.state = "game"  # Chuyển sang màn chơi
 
     def draw_quit_dialog(self):
         # Làm tối màn hình nền
@@ -818,11 +910,11 @@ class Game:
             student_rect = student_text.get_rect(x=panel_x + 40, y=y_pos)
             self.screen.blit(student_text, student_rect)
             y_pos += 30  
-
+    
     def run(self):
         # Phát nhạc menu khi bắt đầu game
         if self.menu_music and not self.music_playing:
-            self.menu_music.play(-1)  # lặp vô hạn
+            self.menu_music.play(-1)  # -1 nghĩa là lặp vô hạn
             self.music_playing = True
             
         while True:
@@ -844,6 +936,9 @@ class Game:
                         if self.state == "menu":
                             # Hiển thị hộp thoại xác nhận thoát khi nhấn ESC ở menu
                             self.show_quit_dialog = True
+                        elif self.state == "level_select":
+                            # Quay lại menu khi nhấn ESC ở màn hình chọn level
+                            self.state = "menu"
                         else:
                             self.state = "menu"
                 if event.type == pygame.MOUSEBUTTONUP:
@@ -864,10 +959,12 @@ class Game:
                 if self.menu_music and not self.music_playing:
                     self.menu_music.play(-1)
                     self.music_playing = True
+            elif self.state == "level_select":
+                self.draw_level_select()
             elif self.state == "game":
                 # Phần xử lý game sẽ được thêm sau
                 font = pygame.font.Font(None, 72)
-                game_text = font.render("GAME SCREEN", True, self.white)
+                game_text = font.render(f"MÀN CHƠI {self.current_level}", True, self.white)
                 self.screen.blit(game_text, 
                                 (self.screen_width // 2 - game_text.get_width() // 2, 
                                  self.screen_height // 2 - game_text.get_height() // 2))
