@@ -136,6 +136,30 @@ class Game:
         self.white = (255, 255, 255)
         self.black = (0, 0, 0)
         
+        # Cài đặt âm thanh
+        self.sound_on = True  # Trạng thái âm thanh mặc định là bật
+        self.volume = 70  # Mức âm lượng mặc định (0-100)
+        self.dragging_slider = False  # Trạng thái đang kéo thanh trượt
+        
+        # Tải nhạc menu
+        try:
+            self.menu_music = pygame.mixer.Sound('assests/sfx/menusfx/Woodland Fantasy.mp3')
+            self.menu_music.set_volume(self.volume / 100.0)  # Thiết lập âm lượng ban đầu (0.0 - 1.0)
+            self.music_playing = False  # Trạng thái đang phát nhạc
+        except pygame.error as e:
+            print(f"Không thể tải nhạc menu: {e}")
+            self.menu_music = None
+        
+        # Cài đặt âm thanh hiệu ứng
+        self.sound_effect_on = True  # Trạng thái âm thanh hiệu ứng mặc định là bật
+        self.effect_volume = 70  # Mức âm lượng hiệu ứng mặc định (0-100)
+        self.dragging_effect_slider = False  # Trạng thái đang kéo thanh trượt hiệu ứng
+        
+        # Biến theo dõi thời gian nhấn nút để tránh click quá nhanh (cooldown 0.4 giây)
+        self.sound_button_last_click = 0
+        self.effect_button_last_click = 0
+        self.button_cooldown = 400  #0.4s
+        
         # Tải hình ảnh
         try:
             # Tải background
@@ -174,6 +198,7 @@ class Game:
         self.font_medium = pygame.font.Font('assests/font/Arial.ttf', 48)
         self.font_small = pygame.font.Font('assests/font/Arial.ttf', 36)
         self.font_title = pygame.font.Font('assests/font/Arial.ttf', 50)
+        self.font_small2 = pygame.font.Font('assests/font/Arial.ttf', 20)
 
 
     def create_clouds(self):
@@ -319,12 +344,14 @@ class Game:
             
         if self.setting_button.draw():
             print("Nút Setting được nhấn!")
-            # Thực hiện hành động khi nhấn Settings
-            
+            # Thực hiện hà nh động khi nhấn Settings
+            self.state = "setting"
+
         if self.leader_button.draw():
             print("Nút Leaderboard được nhấn!")
-            # Thực hiện hành động khi nhấn Leaderboard
-            
+            # Chuyển đến màn hình giới thiệu dự án
+            self.state = "leaderboard"
+
         if self.shop_button.draw():
             print("Nút Prize được nhấn!")
             # Thực hiện hành động khi nhấn Prize
@@ -409,6 +436,8 @@ class Game:
             # Hiệu ứng hover
             pygame.draw.rect(self.screen, (100, 200, 100, 150), ok_rect, border_radius=5)
             if mouse_clicked:
+                if self.menu_music:
+                    self.menu_music.stop()
                 pygame.quit()
                 sys.exit()
         
@@ -444,7 +473,7 @@ class Game:
         
         # Nút quay lại ở góc dưới bên trái
         self.back_btn_bottom = Button(self, 'assests/gui/PNG/btn/prew.png', 
-                                     button_x+60, self.screen_height-60, button_scale*1.2)
+                                     button_x+100, self.screen_height-100, button_scale*1.2)
         
         # Kiểm tra nếu nút quay lại được nhấn
         if self.back_btn_bottom.draw():
@@ -506,7 +535,296 @@ class Game:
             self.screen.blit(line_text, line_rect)
             y_pos += 40  # Khoảng cách giữa các dòng
 
+    def draw_setting(self):
+        button_scale = 0.25
+        button_x = 0 #Vị trí đầu màn hình
+        
+        # Nút quay lại ở góc dưới bên trái
+        self.back_btn_setting = Button(self, 'assests/gui/PNG/btn/prew.png', 
+                                     button_x+100, self.screen_height-100, button_scale*1.2)
+        
+        # Kiểm tra nếu nút quay lại được nhấn
+        if self.back_btn_setting.draw():
+            print("Nút quay lại từ setting được nhấn!")
+            self.state = "menu"
+
+        panel_width = 800
+        panel_height = 500
+        panel_x = self.screen_width // 2 - panel_width // 2
+        panel_y = self.screen_height // 2 - panel_height // 2
+        
+        # Vẽ panel nền
+        panel_surface = pygame.Surface((panel_width, panel_height), pygame.SRCALPHA)
+        pygame.draw.rect(panel_surface, (0, 0, 0, 180), (0, 0, panel_width, panel_height))
+        pygame.draw.rect(panel_surface, (255, 255, 255, 100), (0, 0, panel_width, panel_height), 3)
+        self.screen.blit(panel_surface, (panel_x, panel_y))
+        
+        # Tiêu đề
+        title_text = self.font_title.render("CÀI ĐẶT", True, self.white)
+        title_rect = title_text.get_rect(center=(self.screen_width // 2, panel_y + 60))
+        self.screen.blit(title_text, title_rect)
+        
+        # Phần âm nhạc
+        sound_title = self.font_small.render("Âm nhạc:", True, (255, 255, 150))
+        sound_rect = sound_title.get_rect(x=panel_x + 50, y=panel_y + 150)
+        self.screen.blit(sound_title, sound_rect)
+        
+        # Tạo nút điều khiển âm nhạc
+        sound_icon = 'assests/gui/PNG/btn/sound.png' if self.sound_on else 'assests/gui/PNG/btn/sound_off.png'
+        self.sound_button = Button(self, sound_icon, panel_x + 260, panel_y + 165, button_scale*1.5)
+        
+        # Lấy thời gian hiện tại
+        current_time = pygame.time.get_ticks()
+        
+        # Kiểm tra nếu nút âm nhạc được nhấn và đã qua thời gian cooldown
+        if self.sound_button.draw() and current_time - self.sound_button_last_click > self.button_cooldown:
+            self.sound_button_last_click = current_time  # Cập nhật thời điểm click cuối
+            self.sound_on = not self.sound_on  # Đảo ngược trạng thái âm thanh
+            # Đồng bộ âm lượng: nếu tắt âm thanh, mức âm lượng = 0; nếu bật, mức âm lượng = 100%
+            if not self.sound_on:
+                self.volume = 0
+                if self.menu_music:
+                    self.menu_music.set_volume(0)
+            elif self.volume == 0:
+                self.volume = 10
+                if self.menu_music:
+                    self.menu_music.set_volume(0.1)
+            print(f"Âm nhạc: {'Bật' if self.sound_on else 'Tắt'}, Âm lượng: {self.volume}%")
+        
+        # Vẽ thanh trượt âm lượng nhạc
+        slider_x = panel_x + 320
+        slider_y = panel_y + 165
+        slider_width = 200
+        slider_height = 10
+        slider_color = (100, 100, 100, 180)  # Màu xám cho thanh nền
+        slider_fill_color = (80, 180, 80, 220) if self.sound_on else (100, 100, 100, 150)  # Màu xanh lá cho phần đã điền
+        
+        # Vẽ thanh nền
+        slider_surface = pygame.Surface((slider_width, slider_height), pygame.SRCALPHA)
+        pygame.draw.rect(slider_surface, slider_color, (0, 0, slider_width, slider_height), border_radius=5)
+        self.screen.blit(slider_surface, (slider_x, slider_y))
+        
+        # Vẽ phần đã điền
+        filled_width = int(slider_width * self.volume / 100)
+        if filled_width > 0:
+            filled_surface = pygame.Surface((filled_width, slider_height), pygame.SRCALPHA)
+            pygame.draw.rect(filled_surface, slider_fill_color, (0, 0, filled_width, slider_height), border_radius=5)
+            self.screen.blit(filled_surface, (slider_x, slider_y))
+        
+        # Vẽ núm kéo
+        knob_radius = 12
+        knob_x = slider_x + filled_width
+        knob_y = slider_y + slider_height // 2
+        knob_color = (200, 200, 200, 255)  # Màu trắng cho núm kéo
+        pygame.draw.circle(self.screen, knob_color, (knob_x, knob_y), knob_radius)
+        pygame.draw.circle(self.screen, (80, 80, 80, 150), (knob_x, knob_y), knob_radius, 2)
+        
+        # Xử lý kéo thanh trượt
+        mouse_pos = pygame.mouse.get_pos()
+        mouse_pressed = pygame.mouse.get_pressed()[0]
+        
+        # Kiểm tra xem chuột có đang ở gần núm kéo không
+        knob_rect = pygame.Rect(knob_x - knob_radius, knob_y - knob_radius, knob_radius*2, knob_radius*2)
+        slider_rect = pygame.Rect(slider_x, slider_y - 10, slider_width, slider_height + 20)
+        
+        # Xử lý sự kiện khi bắt đầu kéo
+        if mouse_pressed and knob_rect.collidepoint(mouse_pos) and not self.dragging_slider and not self.dragging_effect_slider:
+            self.dragging_slider = True
+        
+        # Xử lý sự kiện khi click trực tiếp vào thanh trượt
+        elif mouse_pressed and slider_rect.collidepoint(mouse_pos) and not self.dragging_slider and not self.dragging_effect_slider:
+            # Tính toán vị trí mới dựa trên vị trí chuột
+            rel_x = min(max(0, mouse_pos[0] - slider_x), slider_width)
+            self.volume = int((rel_x / slider_width) * 100)
+            # Cập nhật trạng thái âm thanh
+            self.sound_on = self.volume > 0
+            # Cập nhật âm lượng nhạc menu
+            if self.menu_music:
+                self.menu_music.set_volume(self.volume / 100.0)
+            self.dragging_slider = True
+        
+        # Xử lý sự kiện khi đang kéo
+        elif self.dragging_slider and mouse_pressed:
+            # Giới hạn vị trí chuột trong phạm vi thanh trượt
+            rel_x = min(max(0, mouse_pos[0] - slider_x), slider_width)
+            self.volume = int((rel_x / slider_width) * 100)
+            # Cập nhật trạng thái âm thanh
+            self.sound_on = self.volume > 0
+            # Cập nhật âm lượng nhạc menu
+            if self.menu_music:
+                self.menu_music.set_volume(self.volume / 100.0)
+        
+        # Xử lý sự kiện khi kết thúc kéo
+        elif not mouse_pressed and self.dragging_slider:
+            self.dragging_slider = False
+        
+        # Hiển thị phần trăm âm lượng
+        volume_text = self.font_small.render(f"{self.volume}%", True, self.white)
+        volume_rect = volume_text.get_rect(x=slider_x + slider_width + 20, y=slider_y - 10)
+        self.screen.blit(volume_text, volume_rect)
+        
+        # ----- PHẦN ÂM THANH HIỆU ỨNG -----
+        # Vị trí bắt đầu của phần âm thanh hiệu ứng (cách phần âm nhạc 80px)
+        effect_y_offset = 80
+        
+        # Tiêu đề âm thanh hiệu ứng
+        effect_title = self.font_small.render("Âm thanh:", True, (255, 255, 150))
+        effect_rect = effect_title.get_rect(x=panel_x + 50, y=panel_y + 165 + effect_y_offset)
+        self.screen.blit(effect_title, effect_rect)
+        
+        # Tạo nút điều khiển âm thanh hiệu ứng
+        effect_icon = 'assests/gui/PNG/btn/misic.png' if self.sound_effect_on else 'assests/gui/PNG/btn/music_off.png'
+        self.effect_button = Button(self, effect_icon, panel_x + 260, panel_y + 180 + effect_y_offset, button_scale*1.5)
+        
+        # Kiểm tra nếu nút âm thanh hiệu ứng được nhấn và đã qua thời gian cooldown
+        if self.effect_button.draw() and current_time - self.effect_button_last_click > self.button_cooldown:
+            self.effect_button_last_click = current_time  # Cập nhật thời điểm click cuối
+            self.sound_effect_on = not self.sound_effect_on  # Đảo ngược trạng thái
+            # Đồng bộ âm lượng: nếu tắt, mức âm lượng = 0; nếu bật, mức âm lượng = 10%
+            if not self.sound_effect_on:
+                self.effect_volume = 0
+            elif self.effect_volume == 0:
+                self.effect_volume = 10  # Thay đổi từ 10% lên 100%
+            print(f"Âm thanh hiệu ứng: {'Bật' if self.sound_effect_on else 'Tắt'}, Âm lượng: {self.effect_volume}%")
+        
+        # Vẽ thanh trượt âm lượng hiệu ứng
+        effect_slider_x = panel_x + 320
+        effect_slider_y = panel_y + 180 + effect_y_offset
+        effect_slider_width = 200
+        effect_slider_height = 10
+        effect_slider_color = (100, 100, 100, 180)  # Màu xám cho thanh nền
+        effect_slider_fill_color = (80, 180, 80, 220) if self.sound_effect_on else (100, 100, 100, 150)
+        
+        # Vẽ thanh nền
+        effect_slider_surface = pygame.Surface((effect_slider_width, effect_slider_height), pygame.SRCALPHA)
+        pygame.draw.rect(effect_slider_surface, effect_slider_color, (0, 0, effect_slider_width, effect_slider_height), border_radius=5)
+        self.screen.blit(effect_slider_surface, (effect_slider_x, effect_slider_y))
+        
+        # Vẽ phần đã điền
+        effect_filled_width = int(effect_slider_width * self.effect_volume / 100)
+        if effect_filled_width > 0:
+            effect_filled_surface = pygame.Surface((effect_filled_width, effect_slider_height), pygame.SRCALPHA)
+            pygame.draw.rect(effect_filled_surface, effect_slider_fill_color, (0, 0, effect_filled_width, effect_slider_height), border_radius=5)
+            self.screen.blit(effect_filled_surface, (effect_slider_x, effect_slider_y))
+        
+        # Vẽ núm kéo
+        effect_knob_x = effect_slider_x + effect_filled_width
+        effect_knob_y = effect_slider_y + effect_slider_height // 2
+        pygame.draw.circle(self.screen, knob_color, (effect_knob_x, effect_knob_y), knob_radius)
+        pygame.draw.circle(self.screen, (80, 80, 80, 150), (effect_knob_x, effect_knob_y), knob_radius, 2)
+        
+        # Kiểm tra tương tác với thanh trượt hiệu ứng
+        effect_knob_rect = pygame.Rect(effect_knob_x - knob_radius, effect_knob_y - knob_radius, knob_radius*2, knob_radius*2)
+        effect_slider_rect = pygame.Rect(effect_slider_x, effect_slider_y - 10, effect_slider_width, effect_slider_height + 20)
+        
+        # Xử lý sự kiện khi bắt đầu kéo thanh hiệu ứng
+        if mouse_pressed and effect_knob_rect.collidepoint(mouse_pos) and not self.dragging_slider and not self.dragging_effect_slider:
+            self.dragging_effect_slider = True
+        
+        # Xử lý sự kiện khi click trực tiếp vào thanh trượt hiệu ứng
+        elif mouse_pressed and effect_slider_rect.collidepoint(mouse_pos) and not self.dragging_slider and not self.dragging_effect_slider:
+            rel_x = min(max(0, mouse_pos[0] - effect_slider_x), effect_slider_width)
+            self.effect_volume = int((rel_x / effect_slider_width) * 100)
+            self.sound_effect_on = self.effect_volume > 0
+            self.dragging_effect_slider = True
+        
+        # Xử lý sự kiện khi đang kéo thanh hiệu ứng
+        elif self.dragging_effect_slider and mouse_pressed:
+            rel_x = min(max(0, mouse_pos[0] - effect_slider_x), effect_slider_width)
+            self.effect_volume = int((rel_x / effect_slider_width) * 100)
+            self.sound_effect_on = self.effect_volume > 0
+        
+        # Xử lý sự kiện khi kết thúc kéo
+        elif not mouse_pressed and self.dragging_effect_slider:
+            self.dragging_effect_slider = False
+        
+        # Hiển thị phần trăm âm lượng hiệu ứng
+        effect_volume_text = self.font_small.render(f"{self.effect_volume}%", True, self.white)
+        effect_volume_rect = effect_volume_text.get_rect(x=effect_slider_x + effect_slider_width + 20, y=effect_slider_y - 10)
+        self.screen.blit(effect_volume_text, effect_volume_rect)
+
+    def draw_leaderboard(self):
+        button_scale = 0.25
+        button_x = 0 #Vị trí đầu màn hình
+        
+        # Nút quay lại ở góc dưới bên trái
+        self.back_btn_leader = Button(self, 'assests/gui/PNG/btn/prew.png', 
+                                     button_x+100, self.screen_height-100, button_scale*1.2)
+        
+        # Kiểm tra nếu nút quay lại được nhấn
+        if self.back_btn_leader.draw():
+            print("Nút quay lại từ màn hình giới thiệu được nhấn!")
+            self.state = "menu"
+
+        panel_width = 800
+        panel_height = 500
+        panel_x = self.screen_width // 2 - panel_width // 2
+        panel_y = self.screen_height // 2 - panel_height // 2
+        
+        # Vẽ panel nền
+        panel_surface = pygame.Surface((panel_width, panel_height), pygame.SRCALPHA)
+        pygame.draw.rect(panel_surface, (0, 0, 0, 180), (0, 0, panel_width, panel_height))
+        pygame.draw.rect(panel_surface, (255, 255, 255, 100), (0, 0, panel_width, panel_height), 3)
+        self.screen.blit(panel_surface, (panel_x, panel_y))
+        
+        # Tiêu đề
+        title_text = self.font_title.render("GIỚI THIỆU DỰ ÁN", True, self.white)
+        title_rect = title_text.get_rect(center=(self.screen_width // 2, panel_y + 60))
+        self.screen.blit(title_text, title_rect)
+        
+        # Nội dung giới thiệu dự án
+        project_desc = "WindStride – Sải Bước Của Gió là một dự án game phiêu lưu được phát triển với mục tiêu mang đến trải nghiệm hấp dẫn và đầy thử thách. Người chơi sẽ hóa thân thành một chiến binh dũng cảm, vượt qua chướng ngại vật và khám phá thế giới rộng lớn."
+        
+        max_text_width = panel_width - 80  # Đảm bảo không bị tràn ra ngoài
+        project_lines = self.wrap_text(project_desc, self.font_small2, max_text_width)
+        
+        y_pos = panel_y + 120
+        for line in project_lines:
+            line_text = self.font_small2.render(line, True, self.white)
+            line_rect = line_text.get_rect(x=panel_x + 40, y=y_pos)
+            self.screen.blit(line_text, line_rect)
+            y_pos += 30  
+        
+        # Khoảng cách giữa mô tả và lời cảm ơn
+        y_pos += 20
+        
+        thanks_text = self.font_small2.render("Chúng em xin gửi lời cảm ơn chân thành đến Giảng Viên:", True, (255, 255, 150))
+        thanks_rect = thanks_text.get_rect(x=panel_x + 40, y=y_pos)
+        self.screen.blit(thanks_text, thanks_rect)
+        
+        # Tên giảng viên
+        y_pos += 30  
+        teacher_text = self.font_small2.render("Ninh Thị Thu Trang", True, self.white)
+        teacher_rect = teacher_text.get_rect(x=panel_x + 40, y=y_pos)
+        self.screen.blit(teacher_text, teacher_rect)
+        
+        # Khoảng cách giữa lời cảm ơn và danh sách sinh viên
+        y_pos += 40  
+
+        student_title = self.font_small2.render("Sinh viên thực hiện:", True, (255, 255, 150))
+        student_title_rect = student_title.get_rect(x=panel_x + 40, y=y_pos)
+        self.screen.blit(student_title, student_title_rect)
+        
+        # Danh sách sinh viên
+        students = [
+            "Đỗ Duy Nam (C)",
+            "Nguyễn Đức Hải",
+            "Nguyễn Quang Huy"
+        ]
+        
+        y_pos += 30 
+        for student in students:
+            student_text = self.font_small2.render(student, True, self.white)
+            student_rect = student_text.get_rect(x=panel_x + 40, y=y_pos)
+            self.screen.blit(student_text, student_rect)
+            y_pos += 30  
+
     def run(self):
+        # Phát nhạc menu khi bắt đầu game
+        if self.menu_music and not self.music_playing:
+            self.menu_music.play(-1)  # lặp vô hạn
+            self.music_playing = True
+            
         while True:
             # Tính toán delta time
             current_time = pygame.time.get_ticks()
@@ -517,6 +835,8 @@ class Game:
             # Xử lý sự kiện
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
+                    if self.menu_music:
+                        self.menu_music.stop()
                     pygame.quit()
                     sys.exit()
                 if event.type == pygame.KEYDOWN:
@@ -526,6 +846,10 @@ class Game:
                             self.show_quit_dialog = True
                         else:
                             self.state = "menu"
+                if event.type == pygame.MOUSEBUTTONUP:
+                    # Khi thả chuột, đảm bảo dừng việc kéo cả hai thanh trượt
+                    self.dragging_slider = False
+                    self.dragging_effect_slider = False
 
             # Vẽ background
             self.screen.blit(self.background, (0, 0))
@@ -536,6 +860,10 @@ class Game:
             # Vẽ UI theo trạng thái game
             if self.state == "menu":
                 self.draw_menu()
+                # Đảm bảo nhạc menu đang phát khi ở màn hình menu
+                if self.menu_music and not self.music_playing:
+                    self.menu_music.play(-1)
+                    self.music_playing = True
             elif self.state == "game":
                 # Phần xử lý game sẽ được thêm sau
                 font = pygame.font.Font(None, 72)
@@ -551,6 +879,10 @@ class Game:
                                  self.screen_height // 2 + 100))
             elif self.state == "about":
                 self.draw_about()
+            elif self.state == "setting":
+                self.draw_setting()
+            elif self.state == "leaderboard":
+                self.draw_leaderboard()
             
             # Hiển thị hộp thoại xác nhận thoát nếu cần
             if self.show_quit_dialog:
