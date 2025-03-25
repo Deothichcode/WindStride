@@ -20,11 +20,13 @@ class Button:
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
         self.clicked = False
+        self.last_click_time = 0  # Thêm biến theo dõi thời gian click cuối
         
     def draw(self):
         # Lấy vị trí chuột
         mouse_pos = pygame.mouse.get_pos()
         mouse_clicked = pygame.mouse.get_pressed()[0]  # Nút chuột trái
+        current_time = pygame.time.get_ticks()  # Lấy thời gian hiện tại
         
         # Vẽ nút lên màn hình
         self.game.screen.blit(self.image, self.rect.topleft)
@@ -38,9 +40,11 @@ class Button:
             hover_rect = hover_img.get_rect(center=self.rect.center)
             self.game.screen.blit(hover_img, hover_rect.topleft)
             
-            # Kiểm tra sự kiện click
-            if mouse_clicked and not self.clicked:
+            # Kiểm tra sự kiện click và cooldown
+            button_cooldown = 400  # 400ms = 0.4 giây
+            if mouse_clicked and not self.clicked and current_time - self.last_click_time > button_cooldown:
                 self.clicked = True
+                self.last_click_time = current_time  # Cập nhật thời gian click cuối
                 return True
             
         # Reset trạng thái click khi nhả chuột
@@ -320,7 +324,7 @@ class Game:
         center_x = self.screen_width // 2
         
         # Thêm faq trên góc trái
-        self.faq_button = Button(self, 'assests/gui/PNG/btn/faq.png', button_x+40, button_y2+40, button_scale*1.2)
+        self.faq_button = Button(self, 'assests/gui/PNG/btn/faq.png', self.screen_width-40, self.screen_height-40, button_scale*1.2)
         
         # Thêm nút quit góc trái dưới tương xứng với nút FAQ
         self.quit_button = Button(self, 'assests/gui/PNG/btn/close.png', button_x+40, self.screen_height-40, button_scale*1.2)
@@ -394,7 +398,7 @@ class Game:
         
         # Nút quay lại ở góc dưới bên trái
         self.back_btn_level = Button(self, 'assests/gui/PNG/btn/prew.png', 
-                                     button_x+90, self.screen_height-90, button_scale*1.2)
+                                     button_x+100, self.screen_height-100, button_scale*1.2)
         
         # Kiểm tra nếu nút quay lại được nhấn
         if self.back_btn_level.draw():
@@ -455,13 +459,127 @@ class Game:
                     # Hiệu ứng hover
                     if level_number in self.unlocked_levels:
                         pygame.draw.rect(self.screen, (255, 255, 255, 50), level_rect, 4, border_radius=10)
-                    
                     # Xử lý khi click vào màn đã mở khóa
                     if mouse_clicked and level_number in self.unlocked_levels:
                         print(f"Chọn màn chơi {level_number}")
                         self.current_level = level_number
-                        self.state = "game"  # Chuyển sang màn chơi
+                        
+                        # Pre-load level
+                        if self.current_level == 1:
+                            import levels.level1 as level1
+                            self.preloaded_level = level1
+                        # Hiển thị màn hình loading
+                        self.show_loading_screen()
+                        self.state = "game"
+                        return  # Chuyển sang màn chơi
 
+    def show_loading_screen(self):
+        # Tải hình ảnh cho loading screen
+        try:
+            loadbar_bg = pygame.image.load('assests/gui/PNG/load_bar/bg.png').convert_alpha()
+            loadbar_1 = pygame.image.load('assests/gui/PNG/load_bar/1.png').convert_alpha()
+            loadbar_2 = pygame.image.load('assests/gui/PNG/load_bar/2.png').convert_alpha()
+            loadbar_3 = pygame.image.load('assests/gui/PNG/load_bar/3.png').convert_alpha()
+            loading_text = pygame.image.load('assests/gui/PNG/load_bar/text.png').convert_alpha()
+        except pygame.error as e:
+            print(f"Không thể tải hình ảnh loading bar: {e}")
+            return
+        
+        # Scale hình ảnh nếu cần
+        bar_width = 600
+        bar_height = 40
+        
+        loadbar_bg = pygame.transform.scale(loadbar_bg, (bar_width, bar_height))
+        loadbar_1 = pygame.transform.scale(loadbar_1, (bar_width, bar_height))
+        loadbar_2 = pygame.transform.scale(loadbar_2, (bar_width, bar_height))
+        loadbar_3 = pygame.transform.scale(loadbar_3, (bar_width, bar_height))
+        loading_text = pygame.transform.scale(loading_text, (400, 70))
+        
+        # Vị trí trung tâm màn hình
+        bar_x = self.screen_width // 2 - bar_width // 2
+        bar_y = self.screen_height // 2 - bar_height // 2
+        text_x = self.screen_width // 2 - loading_text.get_width() // 2
+        text_y = bar_y - loading_text.get_height() - 20
+        
+        # Thiết lập thời gian loading
+        loading_time = 3.0  # 3 giây
+        start_time = pygame.time.get_ticks()
+        current_time = start_time
+        
+        while (current_time - start_time) / 1000.0 < loading_time:
+            # Xử lý sự kiện trong khi loading (cho phép thoát game)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    return
+            
+            # Tính toán progress (0-100%)
+            progress = min(100, ((current_time - start_time) / 1000.0) / loading_time * 100)
+            
+            # Vẽ màn hình đen
+            self.screen.fill((0, 0, 0))
+            
+            # Vẽ text "Loading..."
+            self.screen.blit(loading_text, (text_x, text_y))
+            
+            # Vẽ loadbar background
+            self.screen.blit(loadbar_bg, (bar_x, bar_y))
+            
+            # Vẽ loadbar progress dựa vào % hoàn thành
+            if progress < 33:
+                # Hiển thị lần lượt 1/3 đầu thanh loading
+                progress_width = int(bar_width * progress / 33)
+                loadbar_crop = loadbar_1.subsurface((0, 0, progress_width, bar_height))
+                self.screen.blit(loadbar_crop, (bar_x, bar_y))
+            elif progress < 66:
+                # Hiển thị đầy đủ 1/3 đầu và một phần của 1/3 giữa
+                self.screen.blit(loadbar_1, (bar_x, bar_y))
+                progress_width = int(bar_width * (progress - 33) / 33)
+                loadbar_crop = loadbar_2.subsurface((0, 0, progress_width, bar_height))
+                self.screen.blit(loadbar_crop, (bar_x, bar_y))
+            else:
+                # Hiển thị đầy đủ 2/3 đầu và một phần của 1/3 cuối
+                self.screen.blit(loadbar_1, (bar_x, bar_y))
+                self.screen.blit(loadbar_2, (bar_x, bar_y))
+                progress_width = int(bar_width * (progress - 66) / 34)
+                loadbar_crop = loadbar_3.subsurface((0, 0, progress_width, bar_height))
+                self.screen.blit(loadbar_crop, (bar_x, bar_y))
+            
+            # Hiển thị % loading
+            percent_text = self.font_small.render(f"{int(progress)}%", True, self.white)
+            percent_rect = percent_text.get_rect(center=(self.screen_width // 2, bar_y + bar_height + 30))
+            self.screen.blit(percent_text, percent_rect)
+            
+            tips = [
+                "Đừng quên thu thập đủ sao nhé chiến binh!!!"
+            ]
+            current_tip = random.choice(tips)
+            tip_text = self.font_small2.render(current_tip, True, (200, 200, 200))
+            self.screen.blit(tip_text, tip_text.get_rect(center=(self.screen_width // 2, self.screen_height - 100)))
+            
+            # Cập nhật màn hình
+            pygame.display.flip()
+            
+            # Cập nhật thời gian hiện tại
+            current_time = pygame.time.get_ticks()
+            
+            # Giới hạn FPS
+            self.clock.tick(60)
+
+        # Hiển thị frame cuối cùng với loading 100%
+        self.screen.fill((0, 0, 0))
+        self.screen.blit(loading_text, (text_x, text_y))
+        self.screen.blit(loadbar_bg, (bar_x, bar_y))
+        self.screen.blit(loadbar_1, (bar_x, bar_y))
+        self.screen.blit(loadbar_2, (bar_x, bar_y))
+        self.screen.blit(loadbar_3, (bar_x, bar_y))
+        percent_text = self.font_small.render("100%", True, self.white)
+        self.screen.blit(percent_text, percent_rect)
+        self.screen.blit(tip_text, tip_text.get_rect(center=(self.screen_width // 2, self.screen_height - 100)))
+        pygame.display.flip()
+    
     def draw_quit_dialog(self):
         # Làm tối màn hình nền
         overlay = pygame.Surface((self.screen_width, self.screen_height), pygame.SRCALPHA)
@@ -917,6 +1035,9 @@ class Game:
             self.menu_music.play(-1)  # -1 nghĩa là lặp vô hạn
             self.music_playing = True
             
+        # Khởi tạo biến để lưu trữ level đã pre-load
+        self.preloaded_level = None
+        
         while True:
             # Tính toán delta time
             current_time = pygame.time.get_ticks()
@@ -962,18 +1083,39 @@ class Game:
             elif self.state == "level_select":
                 self.draw_level_select()
             elif self.state == "game":
-                # Phần xử lý game sẽ được thêm sau
-                font = pygame.font.Font(None, 72)
-                game_text = font.render(f"MÀN CHƠI {self.current_level}", True, self.white)
-                self.screen.blit(game_text, 
-                                (self.screen_width // 2 - game_text.get_width() // 2, 
-                                 self.screen_height // 2 - game_text.get_height() // 2))
+                # Dừng nhạc menu khi vào game
+                if self.menu_music and self.music_playing:
+                    self.menu_music.stop()
+                    self.music_playing = False
                 
-                # Nút back để trở về menu
-                back_text = font.render("Nhấn ESC để trở về menu", True, self.white)
-                self.screen.blit(back_text, 
-                                (self.screen_width // 2 - back_text.get_width() // 2, 
-                                 self.screen_height // 2 + 100))
+                # Sử dụng level đã pre-load nếu có
+                if self.preloaded_level and self.current_level == 1:
+                    # Chạy level1 và nhận kết quả
+                    return_to_menu = self.preloaded_level.run_level(self.screen, self.screen_width, self.screen_height)
+                    
+                    # Xử lý kết quả trả về
+                    if return_to_menu:
+                        # Quay về menu
+                        self.state = "menu"
+                        # Phát lại nhạc menu
+                        if self.menu_music and not self.music_playing:
+                            self.menu_music.play(-1)
+                            self.music_playing = True
+                        # Reset pre-loaded level
+                        self.preloaded_level = None
+                else:
+                    # Đoạn mã này sẽ được thực thi nếu chưa có level tương ứng
+                    font = pygame.font.Font(None, 72)
+                    game_text = font.render(f"MÀN CHƠI {self.current_level}", True, self.white)
+                    self.screen.blit(game_text, 
+                                    (self.screen_width // 2 - game_text.get_width() // 2, 
+                                     self.screen_height // 2 - game_text.get_height() // 2))
+                    
+                    # Nút back để trở về menu
+                    back_text = font.render("Nhấn ESC để trở về menu", True, self.white)
+                    self.screen.blit(back_text, 
+                                    (self.screen_width // 2 - back_text.get_width() // 2, 
+                                     self.screen_height // 2 + 100))
             elif self.state == "about":
                 self.draw_about()
             elif self.state == "setting":
