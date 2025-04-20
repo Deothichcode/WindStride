@@ -110,10 +110,10 @@ class AnimatedObject:
 
 class Player():
     def __init__(self, x, y):
-        self.images_right = [] #di sang phai
-        self.images_left = [] #di sang trai
-        self.index = 0
-        self.counter = 0
+        self.images_right = [] #list frame di sang phai
+        self.images_left = [] #list frame di sang trai
+        self.index = 0 #thu tu frame
+        self.counter = 0 #thoi gian lam moi frame
         for num in range(1,7): # 7 frame chay
             img_right = pygame.image.load(f'assests/character/male/run/run{num}.png') #frame chay
             img_right = pygame.transform.scale(img_right, (115, 115)) 
@@ -200,9 +200,12 @@ class World():
     def __init__(self,data):
         # Khởi tạo list rỗng để lưu trữ tất cả các tile
         self.tile_list = [] #list chứa tile 
-        self.animated_objects = []  # List chua chuyen dong vat the
+        self.animated_tiles = [] # List for animated tiles
+        self.animation_frames = {} # Dictionary to store animation frames
+        self.animation_count = 0
+        self.animation_index = 0
         
-        # Tải tất cả các hình ảnh cần thiết
+        # Tải tất cả các hình ảnh cần thiết FIRST
         ground_img = pygame.image.load('assests/tileset/Forest Tileset/1 Tiles/Tile_12.png') # Ground tile (1)
         dirt_img = pygame.image.load('assests/tileset/Forest Tileset/1 Tiles/Tile_02.png') # Dirt blocks (2)
         grass_img = pygame.image.load('assests/objects/Plant Animations/Plant 1/Plant1_00000.png') # Plant1 (3)
@@ -220,6 +223,77 @@ class World():
         blue_flower1_img = pygame.image.load('assests/objects/Plant Animations/BlueFlower1/BlueFlower_00000.png') # BlueFlower1 (18)
         blue_flower2_img = pygame.image.load('assests/objects/Plant Animations/BlueFlower2/BluePlantClosed_00000.png') # BlueFlower2 (19)
        
+        # tải các khung hình động cho các đối tượng khác nhau
+        # Các khung hình động cho đồng xu
+        coin_frames = []
+        coin_frames.append(pygame.transform.scale(coin_img, (int(tile_size * 0.5), int(tile_size * 0.5))))  # Sử dụng coin_img đã tải làm frame đầu tiên
+        for i in range(2, 5):
+            img = pygame.image.load(f'assests/objects/Item/coin/{i}.png')
+            coin_frames.append(pygame.transform.scale(img, (int(tile_size * 0.5), int(tile_size * 0.5))))
+        self.animation_frames['coin'] = coin_frames
+        
+        # Các khung hình động cho cờ
+        flag_frames = []
+        flag_frames.append(pygame.transform.scale(exit_img, (int(tile_size*1.5), int(tile_size * 2.25))))  # Sử dụng exit_img đã tải làm frame đầu tiên
+        for i in range(2, 5):
+            img = pygame.image.load(f'assests/objects/Item/flag/{i}.png')
+            flag_frames.append(pygame.transform.scale(img, (int(tile_size*1.5), int(tile_size * 2.25))))
+        self.animation_frames['flag'] = flag_frames
+        
+        # Các khung hình động cho rune
+        rune_frames = []
+        rune_frames.append(pygame.transform.scale(rune_img, (int(tile_size * 0.5), int(tile_size * 0.5))))  # Sử dụng rune_img đã tải làm frame đầu tiên
+        for i in range(2, 5):
+            img = pygame.image.load(f'assests/objects/Item/rune/{i}.png')
+            rune_frames.append(pygame.transform.scale(img, (int(tile_size * 0.5), int(tile_size * 0.5))))
+        self.animation_frames['rune'] = rune_frames
+        
+        # Các khung hình động cho cây - thêm hoạt ảnh cho cây
+        plant_frames = []
+        plant_frames.append(pygame.transform.scale(grass_img, (tile_size*3, tile_size*3)))  # Sử dụng grass_img đã tải làm frame đầu tiên
+        for i in range(0, 90):
+            img = pygame.image.load(f'assests/objects/Plant Animations/Plant 1/Plant1_{i:05d}.png')
+            plant_frames.append(pygame.transform.scale(img, (tile_size*3, tile_size*3)))
+        self.animation_frames['plant'] = plant_frames
+        
+        # Các khung hình động cho Plant2
+        plant2_frames = []
+        plant2_frames.append(pygame.transform.scale(plant2_img, (tile_size*3, tile_size*3)))  # Sử dụng plant2_img đã tải
+        for i in range(0, 90):
+            img = pygame.image.load(f'assests/objects/Plant Animations/Plant 2/Plant2_{i:05d}.png')
+            plant2_frames.append(pygame.transform.scale(img, (tile_size*3, tile_size*3)))
+        self.animation_frames['plant2'] = plant2_frames
+        
+        # Các khung hình động cho Plant3
+        plant3_frames = []
+        plant3_frames.append(pygame.transform.scale(plant3_img, (tile_size*3, tile_size*3)))  # Sử dụng plant3_img đã tải
+        self.animation_frames['plant3'] = plant3_frames
+        
+        # Các khung hình động cho Plant4
+        plant4_frames = []
+        plant4_frames.append(pygame.transform.scale(plant4_img, (tile_size*3, tile_size*3)))  # Sử dụng plant4_img đã tải
+        self.animation_frames['plant4'] = plant4_frames
+        
+        # Các khung hình động cho Plant5
+        plant5_frames = []
+        plant5_frames.append(pygame.transform.scale(plant5_img, (tile_size*3, tile_size*3)))  # Sử dụng plant5_img đã tải
+        self.animation_frames['plant5'] = plant5_frames
+        
+        # Các khung hình động cho Plant6
+        plant6_frames = []
+        plant6_frames.append(pygame.transform.scale(plant6_img, (tile_size*3, tile_size*3)))  # Sử dụng plant6_img đã tải
+        self.animation_frames['plant6'] = plant6_frames
+        
+        # Các khung hình động cho hoa xanh 1
+        blue_flower1_frames = []
+        blue_flower1_frames.append(pygame.transform.scale(blue_flower1_img, (tile_size*3, tile_size*3)))  # Sử dụng blue_flower1_img đã tải
+        self.animation_frames['blue_flower1'] = blue_flower1_frames
+        
+        # Các khung hình động cho hoa xanh 2
+        blue_flower2_frames = []
+        blue_flower2_frames.append(pygame.transform.scale(blue_flower2_img, (tile_size*3, tile_size*3)))  # Sử dụng blue_flower2_img đã tải
+        self.animation_frames['blue_flower2'] = blue_flower2_frames
+        
         row_count = 0  
         for row in data:
             col_count = 0 # Biến đếm cột hiện tại
@@ -241,20 +315,20 @@ class World():
                     tile = (img, img_rect)
                     self.tile_list.append(tile)
                     
-                elif tile == 3:  # Plant1 - Animated
-                    img = pygame.transform.scale(grass_img, (tile_size*3, tile_size*3))
+                elif tile == 3:  # Plant1 - Có hoạt ảnh
+                    img = self.animation_frames['plant'][0]  # Bắt đầu với frame đầu tiên
                     img_rect = img.get_rect()
                     img_rect.x = col_count * tile_size - tile_size
                     img_rect.y = row_count * tile_size - tile_size + 6
-                    tile = (img, img_rect)
-                    self.tile_list.append(tile)
+                    tile = (img, img_rect, 'plant')  # Đánh dấu cho hoạt ảnh
+                    self.animated_tiles.append(tile)
                     
-                elif tile == 5:  # Blue slime - Static now
+                elif tile == 5:  # Blue slime - Tĩnh
                     img = pygame.transform.scale(blue_slime_img, (int(tile_size*2), int(tile_size * 1.5)))
                     img_rect = img.get_rect()
                     img_rect.x = col_count * tile_size - tile_size//2
                     img_rect.y = row_count * tile_size - tile_size//2
-                    tile = (img, img_rect, 'enemy')  # Mark as enemy
+                    tile = (img, img_rect, 'enemy')  # Đánh dấu là kẻ thù
                     self.tile_list.append(tile)
                     
                 elif tile == 6:  # Platform X (top)
@@ -281,109 +355,169 @@ class World():
                     tile = (img, img_rect, 'lava')  # Đánh dấu là dung nham
                     self.tile_list.append(tile)
                     
-                elif tile == 9:  # Coin - Static now
-                    img = pygame.transform.scale(coin_img, (int(tile_size * 0.5), int(tile_size * 0.5)))
+                elif tile == 9:  # Coin - Có hoạt ảnh
+                    img = self.animation_frames['coin'][0]  # Bắt đầu với frame đầu tiên
                     img_rect = img.get_rect()
-                    # Center coin in its grid cell
+                    # Căn giữa đồng xu trong ô lưới
                     img_rect.centerx = col_count * tile_size + tile_size // 2
                     img_rect.centery = row_count * tile_size + tile_size // 2
-                    tile = (img, img_rect, 'coin')  # Mark as coin
-                    self.tile_list.append(tile)
+                    tile = (img, img_rect, 'coin')  # Đánh dấu cho hoạt ảnh
+                    self.animated_tiles.append(tile)
                     
-                elif tile == 10:  # Exit (Flag) - Static now
-                    img = pygame.transform.scale(exit_img, (int(tile_size*1.5), int(tile_size * 2.25)))
+                elif tile == 10:  # Exit (Flag) - Có hoạt ảnh
+                    img = self.animation_frames['flag'][0]  # Bắt đầu với frame đầu tiên
                     img_rect = img.get_rect()
                     img_rect.x = col_count * tile_size - tile_size//4
                     img_rect.y = row_count * tile_size - (tile_size * 0.75)
-                    tile = (img, img_rect, 'exit')  # Mark as exit
-                    self.tile_list.append(tile)
+                    tile = (img, img_rect, 'flag')  # Đánh dấu cho hoạt ảnh
+                    self.animated_tiles.append(tile)
                     
-                elif tile == 11:  # Plant2 - Static now
-                    img = pygame.transform.scale(plant2_img, (tile_size*3, tile_size*3))
+                elif tile == 11:  # Plant2 - Có hoạt ảnh
+                    img = self.animation_frames['plant2'][0]  # Sử dụng hoạt ảnh cụ thể cho plant2
                     img_rect = img.get_rect()
                     img_rect.x = col_count * tile_size - tile_size
                     img_rect.y = row_count * tile_size - tile_size + 6
-                    tile = (img, img_rect)
-                    self.tile_list.append(tile)
+                    tile = (img, img_rect, 'plant2')  # Sử dụng định danh duy nhất
+                    self.animated_tiles.append(tile)
                     
-                elif tile == 12:  # Plant3 - Static now
-                    img = pygame.transform.scale(plant3_img, (tile_size*3, tile_size*3))
+                elif tile == 12:  # Plant3 - Có hoạt ảnh
+                    img = self.animation_frames['plant3'][0]  # Sử dụng hoạt ảnh cụ thể cho plant3
                     img_rect = img.get_rect()
                     img_rect.x = col_count * tile_size - tile_size
                     img_rect.y = row_count * tile_size - tile_size + 6
-                    tile = (img, img_rect)
-                    self.tile_list.append(tile)
+                    tile = (img, img_rect, 'plant3')  # Sử dụng định danh duy nhất
+                    self.animated_tiles.append(tile)
                     
-                elif tile == 13:  # Plant4 - Static now
-                    img = pygame.transform.scale(plant4_img, (tile_size*3, tile_size*3))
+                elif tile == 13:  # Plant4 - Có hoạt ảnh
+                    img = self.animation_frames['plant4'][0]  # Sử dụng hoạt ảnh cụ thể cho plant4
                     img_rect = img.get_rect()
                     img_rect.x = col_count * tile_size - tile_size
                     img_rect.y = row_count * tile_size - tile_size + 6
-                    tile = (img, img_rect)
-                    self.tile_list.append(tile)
+                    tile = (img, img_rect, 'plant4')  # Sử dụng định danh duy nhất
+                    self.animated_tiles.append(tile)
                     
-                elif tile == 14:  # Plant5 - Static now
-                    img = pygame.transform.scale(plant5_img, (tile_size*3, tile_size*3))
+                elif tile == 14:  # Plant5 - Có hoạt ảnh
+                    img = self.animation_frames['plant5'][0]  # Sử dụng hoạt ảnh cụ thể cho plant5
                     img_rect = img.get_rect()
                     img_rect.x = col_count * tile_size - tile_size
                     img_rect.y = row_count * tile_size - tile_size + 6
-                    tile = (img, img_rect)
-                    self.tile_list.append(tile)
+                    tile = (img, img_rect, 'plant5')  # Sử dụng định danh duy nhất
+                    self.animated_tiles.append(tile)
                     
-                elif tile == 15:  # Plant6 - Static now
-                    img = pygame.transform.scale(plant6_img, (tile_size*3, tile_size*3))
+                elif tile == 15:  # Plant6 - Có hoạt ảnh
+                    img = self.animation_frames['plant6'][0]  # Sử dụng hoạt ảnh cụ thể cho plant6
                     img_rect = img.get_rect()
                     img_rect.x = col_count * tile_size - tile_size
                     img_rect.y = row_count * tile_size - tile_size + 6
-                    tile = (img, img_rect)
-                    self.tile_list.append(tile)
+                    tile = (img, img_rect, 'plant6')  # Sử dụng định danh duy nhất
+                    self.animated_tiles.append(tile)
                     
-                elif tile == 16:  # Rune - Static now
-                    img = pygame.transform.scale(rune_img, (int(tile_size * 0.5), int(tile_size * 0.5)))
+                elif tile == 16:  # Rune - Có hoạt ảnh
+                    img = self.animation_frames['rune'][0]  # Bắt đầu với frame đầu tiên
                     img_rect = img.get_rect()
-                    # Center rune in its grid cell
+                    # Căn giữa rune trong ô lưới
                     img_rect.centerx = col_count * tile_size + tile_size // 2
                     img_rect.centery = row_count * tile_size + tile_size // 2
-                    tile = (img, img_rect, 'rune')  # Mark as rune
-                    self.tile_list.append(tile)
+                    tile = (img, img_rect, 'rune')  # Đánh dấu cho hoạt ảnh
+                    self.animated_tiles.append(tile)
                     
-                elif tile == 18:  # BlueFlower1 - Static now
-                    img = pygame.transform.scale(blue_flower1_img, (tile_size*3, tile_size*3))
+                elif tile == 18:  # BlueFlower1 - Có hoạt ảnh
+                    img = self.animation_frames['blue_flower1'][0]  # Sử dụng hoạt ảnh blue_flower1
                     img_rect = img.get_rect()
                     img_rect.x = col_count * tile_size - tile_size
                     img_rect.y = row_count * tile_size - tile_size + 6
-                    tile = (img, img_rect)
-                    self.tile_list.append(tile)
+                    tile = (img, img_rect, 'blue_flower1')  # Sử dụng định danh duy nhất
+                    self.animated_tiles.append(tile)
                     
-                elif tile == 19:  # BlueFlower2 - Static now
-                    img = pygame.transform.scale(blue_flower2_img, (tile_size*3, tile_size*3))
+                elif tile == 19:  # BlueFlower2 - Có hoạt ảnh
+                    img = self.animation_frames['blue_flower2'][0]  # Sử dụng hoạt ảnh blue_flower2
                     img_rect = img.get_rect()
                     img_rect.x = col_count * tile_size - tile_size
                     img_rect.y = row_count * tile_size - tile_size + 6
-                    tile = (img, img_rect)
-                    self.tile_list.append(tile)
+                    tile = (img, img_rect, 'blue_flower2')  # Sử dụng định danh duy nhất
+                    self.animated_tiles.append(tile)
                 
                 # Tăng chỉ số cột sau khi xử lý một ô
                 col_count += 1
             # Tăng chỉ số hàng sau khi xử lý một hàng hoàn chỉnh
             row_count += 1
 
+    def update_animations(self):
+        # Cập nhật bộ đếm hoạt ảnh
+        self.animation_count += 1
+        
+        # Thay đổi khung hình hoạt ảnh mỗi 10 khung hình cho hầu hết các đối tượng
+        if self.animation_count >= 10:
+            self.animation_count = 0
+            self.animation_index = (self.animation_index + 1) % 4  # Lặp qua 4 khung hình cho hầu hết các đối tượng
+            
+        # Cập nhật tất cả các tile hoạt ảnh với khung hình mới
+        for i, tile in enumerate(self.animated_tiles):
+            img, rect, tile_type = tile
+            
+            if tile_type == 'coin':
+                self.animated_tiles[i] = (self.animation_frames['coin'][self.animation_index % len(self.animation_frames['coin'])], rect, tile_type)
+            elif tile_type == 'flag':
+                self.animated_tiles[i] = (self.animation_frames['flag'][self.animation_index % len(self.animation_frames['flag'])], rect, tile_type)
+            elif tile_type == 'rune':
+                self.animated_tiles[i] = (self.animation_frames['rune'][self.animation_index % len(self.animation_frames['rune'])], rect, tile_type)
+            elif tile_type == 'plant':
+                plant_index = (pygame.time.get_ticks() // 50) % len(self.animation_frames['plant'])  # Sử dụng thời gian thực để animation mượt mà và nhanh hơn
+                self.animated_tiles[i] = (self.animation_frames['plant'][plant_index], rect, tile_type)
+            elif tile_type == 'plant2':
+                plant_index = (pygame.time.get_ticks() // 50) % len(self.animation_frames['plant2'])  # Sử dụng thời gian thực để animation mượt mà và nhanh hơn
+                self.animated_tiles[i] = (self.animation_frames['plant2'][plant_index], rect, tile_type)
+            elif tile_type == 'plant3':
+                plant_index = (pygame.time.get_ticks() // 50) % len(self.animation_frames['plant3'])
+                self.animated_tiles[i] = (self.animation_frames['plant3'][plant_index], rect, tile_type)
+            elif tile_type == 'plant4':
+                plant_index = (pygame.time.get_ticks() // 50) % len(self.animation_frames['plant4'])
+                self.animated_tiles[i] = (self.animation_frames['plant4'][plant_index], rect, tile_type)
+            elif tile_type == 'plant5':
+                plant_index = (pygame.time.get_ticks() // 50) % len(self.animation_frames['plant5'])
+                self.animated_tiles[i] = (self.animation_frames['plant5'][plant_index], rect, tile_type)
+            elif tile_type == 'plant6':
+                plant_index = (pygame.time.get_ticks() // 50) % len(self.animation_frames['plant6'])
+                self.animated_tiles[i] = (self.animation_frames['plant6'][plant_index], rect, tile_type)
+            elif tile_type == 'blue_flower1':
+                flower_index = (self.animation_index // 2) % len(self.animation_frames['blue_flower1'])  
+                self.animated_tiles[i] = (self.animation_frames['blue_flower1'][flower_index], rect, tile_type)
+            elif tile_type == 'blue_flower2':
+                flower_index = (self.animation_index // 2) % len(self.animation_frames['blue_flower2'])  
+                self.animated_tiles[i] = (self.animation_frames['blue_flower2'][flower_index], rect, tile_type)
+    
     def draw(self):
-        # First draw plant objects and flag (they should be behind other objects)
-        for obj in self.animated_objects:
-            if obj.object_type == 'plant' or obj.object_type == 'flag':
-                obj.update()
-                obj.draw()
+        # Cập nhật hoạt ảnh
+        self.update_animations()
         
-        # Then draw static tiles
+        # Vẽ đối tượng cờ trước tiên (chúng nên hiển thị đằng sau mọi thứ)
+        for tile in self.animated_tiles:
+            img, rect, tile_type = tile
+            if tile_type == 'flag':
+                screen.blit(img, rect)
+        
+        # Vẽ đối tượng cây (chúng nên hiển thị đằng sau các tile thông thường nhưng phía trên cờ)
+        for tile in self.animated_tiles:
+            img, rect, tile_type = tile
+            if tile_type.startswith('plant') or tile_type == 'plant' or tile_type.startswith('blue_flower'):
+                screen.blit(img, rect)
+        
+        # Vẽ các tile tĩnh thông thường
         for tile in self.tile_list:
-            screen.blit(tile[0], tile[1]) #lôi tuple trong tile_list ra vị trí tile[0] là ảnh, tile[1] là vị trí
+            # Bỏ qua các tile đặc biệt cần vẽ riêng
+            if len(tile) <= 2 or tile[2] not in ['lava', 'platform_x']:
+                screen.blit(tile[0], tile[1])
         
-        # Finally draw other animated objects (coin, rune, slime)
-        for obj in self.animated_objects:
-            if obj.object_type != 'plant' and obj.object_type != 'flag':
-                obj.update()
-                obj.draw()
+        # Vẽ các tile hoạt ảnh còn lại (đồng xu, rune)
+        for tile in self.animated_tiles:
+            img, rect, tile_type = tile
+            if tile_type != 'flag' and not tile_type.startswith('plant') and tile_type != 'plant' and not tile_type.startswith('blue_flower'):
+                screen.blit(img, rect)
+        
+        # Vẽ các tile đặc biệt phía trên cùng (lava, platforms)
+        for tile in self.tile_list:
+            if len(tile) > 2 and tile[2] in ['lava', 'platform_x']:
+                screen.blit(tile[0], tile[1])
 
 
 # Hàm để tải dữ liệu level từ file
