@@ -2,6 +2,7 @@ import pygame
 from pygame.locals import *
 import pickle
 from os import path
+import random
 
 pygame.init()
 
@@ -37,6 +38,74 @@ def draw_grid():
     # Vẽ đường dọc
     for line in range(vertical_lines):
         pygame.draw.line(screen, (255,255,255), (line * tile_size, 0), (line * tile_size, screen_height))
+
+#lop chuyen dong cua vat the
+class AnimatedObject:
+    def __init__(self, x, y, image_path, scale, object_type, animation_speed=10, move_range=3):
+        self.images = [] #list chua khung hinh
+        self.index = 0 #thu tu khung hinh
+        self.counter = 0 #thoi gian lam moi khung hinh
+        # dieu chinh toc do lam moi frame
+        if object_type in ['coin', 'rune']:
+            self.animation_speed = animation_speed*1.5
+        elif object_type in ['flag']:
+            self.animation_speed = animation_speed*2.5 #lam cham toc do lam moi frame cua la co
+        else:
+            self.animation_speed = animation_speed
+        
+        self.object_type = object_type
+        self.original_y = y
+        self.original_x = x
+        self.direction = 1  
+        self.move_counter = 0
+        self.move_range = move_range
+        
+        # load animation
+        if object_type == 'coin':
+            for i in range(1, 5): 
+                img = pygame.image.load(f'assests/objects/Item/coin/{i}.png')
+                img = pygame.transform.scale(img, scale)
+                self.images.append(img)
+        elif object_type == 'rune':
+            for i in range(1, 5):  
+                img = pygame.image.load(f'assests/objects/Item/rune/{i}.png')
+                img = pygame.transform.scale(img, scale)
+                self.images.append(img)
+        elif object_type == 'flag':
+            for i in range(1, 5):  
+                img = pygame.image.load(f'assests/objects/Item/flag/{i}.png')
+                img = pygame.transform.scale(img, scale)
+                self.images.append(img)
+        elif object_type == 'slime':
+            # Load only a single frame for slime, no animation
+            img = pygame.image.load(f'assests/objects/Creep/Blue_Slime/idle/1.png')
+            img = pygame.transform.scale(img, scale)
+            self.images.append(img)
+        elif object_type == 'plant':
+            for i in range(0, 90): 
+                img = pygame.image.load(f'assests/objects/Plant Animations/Plant 1/Plant1_{i:05d}.png')
+                img = pygame.transform.scale(img, scale)
+                self.images.append(img)
+        
+        self.image = self.images[0]
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+    
+    def update(self):
+        # Update animation frame
+        self.counter += 1
+        if self.counter > self.animation_speed:
+            self.counter = 0
+            self.index += 1
+            if self.index >= len(self.images):
+                self.index = 0
+            self.image = self.images[self.index]
+        
+        # Removed slime movement code to make slimes static
+    
+    def draw(self):
+        screen.blit(self.image, self.rect)
 
 
 class Player():
@@ -131,6 +200,7 @@ class World():
     def __init__(self,data):
         # Khởi tạo list rỗng để lưu trữ tất cả các tile
         self.tile_list = [] #list chứa tile 
+        self.animated_objects = []  # List chua chuyen dong vat the
         
         # Tải tất cả các hình ảnh cần thiết
         ground_img = pygame.image.load('assests/tileset/Forest Tileset/1 Tiles/Tile_12.png') # Ground tile (1)
@@ -171,7 +241,7 @@ class World():
                     tile = (img, img_rect)
                     self.tile_list.append(tile)
                     
-                elif tile == 3:  # Plant1
+                elif tile == 3:  # Plant1 - Animated
                     img = pygame.transform.scale(grass_img, (tile_size*3, tile_size*3))
                     img_rect = img.get_rect()
                     img_rect.x = col_count * tile_size - tile_size
@@ -179,12 +249,12 @@ class World():
                     tile = (img, img_rect)
                     self.tile_list.append(tile)
                     
-                elif tile == 5:  # Blue slime
+                elif tile == 5:  # Blue slime - Static now
                     img = pygame.transform.scale(blue_slime_img, (int(tile_size*2), int(tile_size * 1.5)))
                     img_rect = img.get_rect()
                     img_rect.x = col_count * tile_size - tile_size//2
                     img_rect.y = row_count * tile_size - tile_size//2
-                    tile = (img, img_rect, 'enemy')  # Đánh dấu là kẻ thù
+                    tile = (img, img_rect, 'enemy')  # Mark as enemy
                     self.tile_list.append(tile)
                     
                 elif tile == 6:  # Platform X (top)
@@ -211,24 +281,24 @@ class World():
                     tile = (img, img_rect, 'lava')  # Đánh dấu là dung nham
                     self.tile_list.append(tile)
                     
-                elif tile == 9:  # Coin
+                elif tile == 9:  # Coin - Static now
                     img = pygame.transform.scale(coin_img, (int(tile_size * 0.5), int(tile_size * 0.5)))
                     img_rect = img.get_rect()
                     # Center coin in its grid cell
                     img_rect.centerx = col_count * tile_size + tile_size // 2
                     img_rect.centery = row_count * tile_size + tile_size // 2
-                    tile = (img, img_rect, 'coin')  # Đánh dấu là đồng xu
+                    tile = (img, img_rect, 'coin')  # Mark as coin
                     self.tile_list.append(tile)
                     
-                elif tile == 10:  # Exit
+                elif tile == 10:  # Exit (Flag) - Static now
                     img = pygame.transform.scale(exit_img, (int(tile_size*1.5), int(tile_size * 2.25)))
                     img_rect = img.get_rect()
                     img_rect.x = col_count * tile_size - tile_size//4
                     img_rect.y = row_count * tile_size - (tile_size * 0.75)
-                    tile = (img, img_rect, 'exit')  # Đánh dấu là lối ra
+                    tile = (img, img_rect, 'exit')  # Mark as exit
                     self.tile_list.append(tile)
                     
-                elif tile == 11:  # Plant2
+                elif tile == 11:  # Plant2 - Static now
                     img = pygame.transform.scale(plant2_img, (tile_size*3, tile_size*3))
                     img_rect = img.get_rect()
                     img_rect.x = col_count * tile_size - tile_size
@@ -236,7 +306,7 @@ class World():
                     tile = (img, img_rect)
                     self.tile_list.append(tile)
                     
-                elif tile == 12:  # Plant3
+                elif tile == 12:  # Plant3 - Static now
                     img = pygame.transform.scale(plant3_img, (tile_size*3, tile_size*3))
                     img_rect = img.get_rect()
                     img_rect.x = col_count * tile_size - tile_size
@@ -244,7 +314,7 @@ class World():
                     tile = (img, img_rect)
                     self.tile_list.append(tile)
                     
-                elif tile == 13:  # Plant4
+                elif tile == 13:  # Plant4 - Static now
                     img = pygame.transform.scale(plant4_img, (tile_size*3, tile_size*3))
                     img_rect = img.get_rect()
                     img_rect.x = col_count * tile_size - tile_size
@@ -252,7 +322,7 @@ class World():
                     tile = (img, img_rect)
                     self.tile_list.append(tile)
                     
-                elif tile == 14:  # Plant5
+                elif tile == 14:  # Plant5 - Static now
                     img = pygame.transform.scale(plant5_img, (tile_size*3, tile_size*3))
                     img_rect = img.get_rect()
                     img_rect.x = col_count * tile_size - tile_size
@@ -260,7 +330,7 @@ class World():
                     tile = (img, img_rect)
                     self.tile_list.append(tile)
                     
-                elif tile == 15:  # Plant6
+                elif tile == 15:  # Plant6 - Static now
                     img = pygame.transform.scale(plant6_img, (tile_size*3, tile_size*3))
                     img_rect = img.get_rect()
                     img_rect.x = col_count * tile_size - tile_size
@@ -268,16 +338,16 @@ class World():
                     tile = (img, img_rect)
                     self.tile_list.append(tile)
                     
-                elif tile == 16:  # Rune
+                elif tile == 16:  # Rune - Static now
                     img = pygame.transform.scale(rune_img, (int(tile_size * 0.5), int(tile_size * 0.5)))
                     img_rect = img.get_rect()
                     # Center rune in its grid cell
                     img_rect.centerx = col_count * tile_size + tile_size // 2
                     img_rect.centery = row_count * tile_size + tile_size // 2
-                    tile = (img, img_rect, 'rune')  # Đánh dấu là rune
+                    tile = (img, img_rect, 'rune')  # Mark as rune
                     self.tile_list.append(tile)
                     
-                elif tile == 18:  # BlueFlower1
+                elif tile == 18:  # BlueFlower1 - Static now
                     img = pygame.transform.scale(blue_flower1_img, (tile_size*3, tile_size*3))
                     img_rect = img.get_rect()
                     img_rect.x = col_count * tile_size - tile_size
@@ -285,7 +355,7 @@ class World():
                     tile = (img, img_rect)
                     self.tile_list.append(tile)
                     
-                elif tile == 19:  # BlueFlower2
+                elif tile == 19:  # BlueFlower2 - Static now
                     img = pygame.transform.scale(blue_flower2_img, (tile_size*3, tile_size*3))
                     img_rect = img.get_rect()
                     img_rect.x = col_count * tile_size - tile_size
@@ -299,8 +369,21 @@ class World():
             row_count += 1
 
     def draw(self):
+        # First draw plant objects and flag (they should be behind other objects)
+        for obj in self.animated_objects:
+            if obj.object_type == 'plant' or obj.object_type == 'flag':
+                obj.update()
+                obj.draw()
+        
+        # Then draw static tiles
         for tile in self.tile_list:
             screen.blit(tile[0], tile[1]) #lôi tuple trong tile_list ra vị trí tile[0] là ảnh, tile[1] là vị trí
+        
+        # Finally draw other animated objects (coin, rune, slime)
+        for obj in self.animated_objects:
+            if obj.object_type != 'plant' and obj.object_type != 'flag':
+                obj.update()
+                obj.draw()
 
 
 # Hàm để tải dữ liệu level từ file

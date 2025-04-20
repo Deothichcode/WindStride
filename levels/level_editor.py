@@ -37,7 +37,6 @@ ground_img = pygame.image.load('assests/tileset/Forest Tileset/1 Tiles/Tile_12.p
 # Other tiles
 dirt_img = pygame.image.load('assests/tileset/Forest Tileset/1 Tiles/Tile_02.png')
 grass_img = pygame.image.load('assests/objects/Plant Animations/Plant 1/Plant1_00000.png')
-# Additional plants
 plant2_img = pygame.image.load('assests/objects/Plant Animations/Plant 2/Plant2_00000.png')
 plant3_img = pygame.image.load('assests/objects/Plant Animations/Plant 3/Plant3_00000.png')
 plant4_img = pygame.image.load('assests/objects/Plant Animations/Plant 4/Plant4_00000.png') if path.exists('assests/objects/Plant Animations/Plant 4/Plant4_00000.png') else grass_img
