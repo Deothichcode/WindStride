@@ -147,7 +147,7 @@ class Game:
         
         # Tải nhạc menu
         try:
-            self.menu_music = pygame.mixer.Sound('assests/sfx/menusfx/NinjaSchool.mp3')
+            self.menu_music = pygame.mixer.Sound('assests/sfx/menusfx/WhereWindWhispers.mp3')
             self.menu_music.set_volume(self.volume / 100.0)  # Thiết lập âm lượng ban đầu (0.0 - 1.0)
             self.music_playing = False  # Trạng thái đang phát nhạc
         except pygame.error as e:
@@ -1017,9 +1017,9 @@ class Game:
         
         # Danh sách sinh viên
         students = [
-            "Đỗ Duy Nam (C)",
-            "Nguyễn Đức Hải",
-            "Nguyễn Quang Huy"
+            "Nguyễn Đức Hải(C) - B22DCAT107",
+            "Đỗ Duy Nam - B22DCAT199",
+            "Nguyễn Quang Huy - B22DCAT143"
         ]
         
         y_pos += 30 

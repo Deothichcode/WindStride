@@ -1,375 +1,359 @@
 import pygame
-import sys
-import os
-import random
-import math
+from pygame.locals import *
+import pickle
+from os import path
 
-class Cloud:
-    def __init__(self, level, image_path, speed, y_pos, scale=1.0, depth=1.0, alpha=255):
-        self.level = level
-        try:
-            self.original_image = pygame.image.load(image_path).convert_alpha()
-            # Scale hình ảnh theo tỉ lệ
-            new_width = int(self.original_image.get_width() * scale)
-            new_height = int(self.original_image.get_height() * scale)
-            self.image = pygame.transform.scale(self.original_image, (new_width, new_height))
-            
-            # Thiết lập độ trong suốt
-            self.image.set_alpha(alpha)
-        except:
-            # Nếu không tải được hình, tạo một surface tạm thời
-            print(f"Không thể tải hình ảnh đám mây: {image_path}")
-            self.image = pygame.Surface((100, 50), pygame.SRCALPHA)
-            self.image.fill((255, 255, 255, alpha))
-        
-        # Vị trí ban đầu
-        self.x = random.randint(-self.image.get_width(), level.screen_width)
-        self.y = y_pos
-        
-        # Vận tốc di chuyển (pixels/second)
-        self.speed = speed
-        
-        # Độ sâu (ảnh hưởng đến tốc độ di chuyển)
-        self.depth = depth
-        
-    
-    def update(self, delta_time):
-        # Di chuyển đám mây từ trái sang phải với tốc độ phụ thuộc vào delta_time
-        self.x += self.speed * delta_time * 60
-        
-        
-        # Khi đám mây đi qua khỏi màn hình, đặt lại vị trí
-        if self.x > self.level.screen_width:
-            self.x = -self.image.get_width()
-            # Thay đổi ngẫu nhiên biên độ và tốc độ dao động
-            self.wave_amplitude = random.uniform(0.8, 2.0)
-            self.wave_speed = random.uniform(0.3, 0.7)
-    
-    def draw(self, screen, camera_x=0):
-        # Vẽ đám mây lên màn hình với điều chỉnh vị trí theo camera
-        adjusted_x = int(self.x - camera_x * self.depth)
-        screen.blit(self.image, (adjusted_x, self.y))
+pygame.init()
 
-class Platform:
-    def __init__(self, x, y, width, height, tile_type="grass"):
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
-        self.tile_type = tile_type
-        self.image = None
-        self.load_image()
-    
-    def load_image(self):
-        if self.tile_type == "grass":
-            self.image = pygame.image.load('assests/tileset/Forest Tileset/1 Tiles/Tile_02.png').convert_alpha()
-        elif self.tile_type == "dirt":
-            self.image = pygame.image.load('assests/tileset/Forest Tileset/1 Tiles/Tile_04.png').convert_alpha()
-        elif self.tile_type == "stone":
-            self.image = pygame.image.load('assests/tileset/Forest Tileset/1 Tiles/Tile_12.png').convert_alpha()
-        elif self.tile_type == "mossy":
-            self.image = pygame.image.load('assests/tileset/Mossy Tileset/Mossy - TileSet.png').convert_alpha()
-            # Lấy một phần của tileset (tile đầu tiên)
-            self.image = self.image.subsurface((0, 0, 32, 32))
-        else:
-            # Tạo một surface trống nếu không tìm thấy tile phù hợp
-            self.image = pygame.Surface((32, 32))
-            self.image.fill((100, 100, 100))
-    
-    def draw(self, screen, camera_x):
-        # Vẽ tile lặp lại để phủ kín platform
-        for x in range(0, self.width, 32):
-            for y in range(0, self.height, 32):
-                screen.blit(self.image, (self.x + x - camera_x, self.y + y))
+clock = pygame.time.Clock()
+fps = 60
 
-class Decoration:
-    def __init__(self, x, y, image_path, scale=1.0):
-        self.x = x
-        self.y = y
-        self.image = pygame.image.load(image_path).convert_alpha()
-        self.width = self.image.get_width()
-        self.height = self.image.get_height()
-        
-        if scale != 1.0:
-            new_width = int(self.width * scale)
-            new_height = int(self.height * scale)
-            self.image = pygame.transform.scale(self.image, (new_width, new_height))
-            self.width = new_width
-            self.height = new_height
-    
-    def draw(self, screen, camera_x):
-        screen.blit(self.image, (self.x - camera_x, self.y))
+screen_with = 1200
+screen_height = 700
 
-class Level1:
-    def __init__(self, screen_width, screen_height):
-        self.screen_width = screen_width
-        self.screen_height = screen_height
-        self.level_complete = False
-        
-        # Thiết lập camera
-        self.camera_x = 0
-        
-        # Tạo nền (background)
-        self.load_background()
-        
-        # Tạo các layer đám mây
-        self.create_clouds()
-        
-        # Tạo các platform
-        self.create_platforms()
-        
-        # Tạo các decoration
-        self.create_decorations()
-        
-        # Button để quay về menu
-        self.back_button = None
-        try:
-            back_img = pygame.image.load('assests/gui/PNG/btn/pause.png').convert_alpha()
-            back_width = int(back_img.get_width() * 0.25)
-            back_height = int(back_img.get_height() * 0.25)
-            self.back_button = {
-                'image': pygame.transform.scale(back_img, (back_width, back_height)),
-                'rect': pygame.Rect(20, 20, back_width, back_height),
-                'hover': False
-            }
-        except:
-            print("Không thể tải hình ảnh nút Back")
-        
-        # Biến đếm thời gian
-        self.last_time = pygame.time.get_ticks()
+screen = pygame.display.set_mode((screen_with, screen_height))
+pygame.display.set_caption('WindStride')
 
-    def load_background(self):
-        """Load hình nền"""
-            # Nền chính với game_background_2.png
-        self.bg_main = pygame.image.load('assests/background/PNG/game_background_2/game_background_2.png').convert_alpha()
-        self.bg_main = pygame.transform.scale(self.bg_main, (self.screen_width, self.screen_height*0.9))
-            
-            # Layer 2: Núi xa
-        self.bg_mountains = pygame.image.load('assests/background/PNG/game_background_2/layers/rocks_1.png').convert_alpha()
-        self.bg_mountains = pygame.transform.scale(self.bg_mountains, (self.screen_width * 1.5, self.screen_height * 0.7))
-            
-            # Layer 3: Rừng thông phía xa
-        self.bg_pines = pygame.image.load('assests/background/PNG/game_background_2/layers/pines.png').convert_alpha()
-        self.bg_pines = pygame.transform.scale(self.bg_pines, (self.screen_width * 2, self.screen_height * 0.5))
-            
-    
-    def create_clouds(self):
-        self.clouds = []
-        
-        # Danh sách các hình ảnh đám mây
-        cloud_images = [
-            'assests/background/PNG/game_background_2/layers/clouds_1.png',
-            'assests/background/PNG/game_background_2/layers/clouds_2.png',
-            'assests/background/PNG/game_background_2/layers/clouds_3.png',
-        ]
-        
-        # Lớp đám mây xa
-        for i in range(5):
-            x_pos = i * (self.screen_width // 5)
-            self.clouds.append(Cloud(
-                self, 
-                cloud_images[0],
-                0.10,
-                random.randint(20, 150),
-                scale=0.5,
-                depth=0.2,
-                alpha=70
-            ))
-        
-        # Lớp đám mây xa thứ hai
-        for i in range(5):
-            x_pos = i * (self.screen_width // 5) + (self.screen_width // 10)  # Xen kẽ
-            self.clouds.append(Cloud(
-                self, 
-                cloud_images[1],
-                0.15,
-                random.randint(50, 180),
-                scale=0.6,
-                depth=0.3,
-                alpha=100
-            ))
-        
-        # Lớp đám mây trung bình
-        for i in range(4):
-            x_pos = i * (self.screen_width // 4)
-            self.clouds.append(Cloud(
-                self, 
-                cloud_images[1],
-                0.25,
-                random.randint(100, 250),
-                scale=0.7,
-                depth=0.6,
-                alpha=100
-            ))
-            
-    
-    def create_platforms(self):
-        self.platforms = []
-        
-        # Platform ban đầu
-        self.platforms.append(Platform(0, 500, 500, 100, "grass"))
-        
-        # Thêm một số platform với tile ngẫu nhiên
-        tile_types = ["grass", "dirt", "stone", "mossy"]
-        
-        self.platforms.append(Platform(600, 450, 300, 32, random.choice(tile_types)))
-        self.platforms.append(Platform(1000, 400, 300, 32, random.choice(tile_types)))
-        self.platforms.append(Platform(1400, 450, 300, 32, random.choice(tile_types)))
-        self.platforms.append(Platform(1800, 500, 300, 32, random.choice(tile_types)))
-        
-        # Thêm nền dưới cùng
-        self.platforms.append(Platform(0, 600, 2000, 200, "dirt"))
-        
-        # Thêm một số platform ở phần sau của level
-        self.platforms.append(Platform(2100, 500, 200, 32, "stone"))
-        self.platforms.append(Platform(2400, 450, 200, 32, "stone"))
-        self.platforms.append(Platform(2700, 400, 200, 32, "stone"))
-        self.platforms.append(Platform(3000, 450, 200, 32, "stone"))
-        self.platforms.append(Platform(3300, 500, 200, 32, "stone"))
-        
-        # Thêm nền cho khu vực cuối
-        self.platforms.append(Platform(3600, 500, 500, 300, "grass"))
-    
-    def create_decorations(self):
-        self.decorations = []
-        
-        # Thêm một số cây
-        tree_positions = [(100, 400), (300, 400), (700, 350), (1100, 300), (1500, 350), (1900, 400), (3700, 400)]
-        for pos in tree_positions:
-            self.decorations.append(Decoration(
-                pos[0], pos[1], 
-                'assests/tileset/Forest Tileset/1 Tiles/Tile_03.png',
-                2.0
-            ))
-        
-        # Thêm một số bụi cây
-        bush_positions = [(200, 470), (500, 470), (900, 420), (1300, 370), (1700, 420), (2000, 470), (3800, 470)]
-        for pos in bush_positions:
-            self.decorations.append(Decoration(
-                pos[0], pos[1], 
-                'assests/tileset/Forest Tileset/1 Tiles/Tile_58.png',
-                1.0
-            ))
-        
-        # Thêm một số trang trí từ tileset Mossy
-        mossy_positions = [(350, 450), (850, 400), (1250, 350), (1650, 400), (2250, 450), (2850, 350), (3450, 450)]
-        for pos in mossy_positions:
-            try:
-                self.decorations.append(Decoration(
-                    pos[0], pos[1], 
-                    'assests/tileset/Mossy Tileset/Mossy - Decorations&Hazards.png',
-                    0.5
-                ))
-            except:
-                print("Không thể tải hình ảnh trang trí Mossy")
-    
-    def update_camera(self, delta_time):
-        # Giữ camera đứng yên
-        self.camera_x = 0  # Đặt camera cố định ở vị trí 0
-    
-    def update_clouds(self, delta_time):
-        for cloud in self.clouds:
-            cloud.update(delta_time)
-    
-    def update(self, delta_time):
-        self.update_camera(delta_time)
-        self.update_clouds(delta_time)
-    
-    def draw(self, screen):
-        # Vẽ hình nền chính
-        screen.blit(self.bg_main, (0, 0))
-        
-        # Vẽ núi xa với parallax
-        mountain_x = -self.camera_x * 0.2  # Parallax factor
-        screen.blit(self.bg_mountains, (mountain_x, self.screen_height - self.bg_mountains.get_height()))
-        
-        # Vẽ rừng thông xa với parallax
-        pines_x = -self.camera_x * 0.4  # Parallax factor
-        screen.blit(self.bg_pines, (pines_x, self.screen_height - self.bg_pines.get_height()))
-        
-        # Vẽ các đám mây
-        for cloud in self.clouds:
-            cloud.draw(screen, self.camera_x)
-        
-        # Vẽ các decoration phía sau
-        for decoration in self.decorations:
-            decoration.draw(screen, self.camera_x)
-        
-        # Vẽ các platform
-        for platform in self.platforms:
-            platform.draw(screen, self.camera_x)
-        
-        # Vẽ nút back
-        if self.back_button:
-            screen.blit(self.back_button['image'], self.back_button['rect'])
-            # Kiểm tra hover
-            mouse_pos = pygame.mouse.get_pos()
-            if self.back_button['rect'].collidepoint(mouse_pos):
-                pygame.draw.rect(screen, (255, 255, 255, 100), self.back_button['rect'], 2)
-                self.back_button['hover'] = True
-            else:
-                self.back_button['hover'] = False
-    
-    def check_back_button(self, mouse_pos, mouse_clicked):
-        if self.back_button and self.back_button['rect'].collidepoint(mouse_pos) and mouse_clicked:
-            return True
-        return False
+try:
+    logo = pygame.image.load('assests/gui/PNG/menu/LogoWindStride.png').convert_alpha()
+    logo = pygame.transform.scale(logo, (32, 32))
+    pygame.display.set_icon(logo)
+except pygame.error:
+    print("Không thể tải icon!")
 
-def run_level(screen, screen_width, screen_height):
-    level = Level1(screen_width, screen_height)
-    clock = pygame.time.Clock()
-    running = True
-    return_to_menu = False
-    last_time = pygame.time.get_ticks()
-    
-    while running:
-        # Tính toán delta time
-        current_time = pygame.time.get_ticks()
-        delta_time = (current_time - last_time) / 1000.0
-        last_time = current_time
-        delta_time = min(delta_time, 0.1)  # Giới hạn delta_time
-        
-        # Xử lý sự kiện
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    return_to_menu = True
-                    running = False
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:  # Left mouse button
-                    if level.check_back_button(event.pos, True):
-                        return_to_menu = True
-                        running = False
-        
-        # Cập nhật
-        level.update(delta_time)
-        
-        # Vẽ
-        screen.fill((0, 0, 0))  # Xóa màn hình
-        level.draw(screen)
-        
-        # Cập nhật màn hình
-        pygame.display.flip()
-        clock.tick(60)
-    
-    return return_to_menu
+#load ảnh
+background_img = pygame.image.load('assests/background/PNG/game_background_2/game_background_2.png')
+background_img = pygame.transform.scale(background_img, (screen_with, screen_height))
 
-if __name__ == "__main__":
-    pygame.init()
-    screen_width = 1200
-    screen_height = 700
-    screen = pygame.display.set_mode((screen_width, screen_height))
-    pygame.display.set_caption("WindStride")
+tile_size = 60 #mỗi ô grid có pixel là 100x100
+def draw_grid():
+    # Tính số lượng đường cần vẽ dựa trên kích thước màn hình
+    horizontal_lines = screen_height // tile_size + 1
+    vertical_lines = screen_with // tile_size + 1
+    
+    # Vẽ đường ngang
+    for line in range(horizontal_lines):
+        pygame.draw.line(screen, (255,255,255), (0, line * tile_size), (screen_with, line * tile_size))
+    # Vẽ đường dọc
+    for line in range(vertical_lines):
+        pygame.draw.line(screen, (255,255,255), (line * tile_size, 0), (line * tile_size, screen_height))
+
+
+class Player():
+    def __init__(self, x, y):
+        self.images_right = [] #di sang phai
+        self.images_left = [] #di sang trai
+        self.index = 0
+        self.counter = 0
+        for num in range(1,7): # 8 frame chay
+            img_right = pygame.image.load(f'assests/character/male/run/run{num}.png') #frame chay
+            img_right = pygame.transform.scale(img_right, (115, 115)) 
+            img_left = pygame.transform.flip(img_right,True, False)  #lat nguoc nhan vat theo truc x not y
+            self.images_right.append(img_right)
+            self.images_left.append(img_left)
+        # Load idle frame
+        self.idle_image_right = pygame.image.load('assests/character/male/idle/Idle.png')
+        self.idle_image_right = pygame.transform.scale(self.idle_image_right, (115, 115))
+        self.idle_image_left = pygame.transform.flip(self.idle_image_right, True, False)
+        self.image = self.idle_image_right
+        self.rect = self.image.get_rect()
+        self.rect.x = x #di chuyen sang 2 ben
+        self.rect.y = y #di chuyen len xuong
+        self.vel_y = 0 #trong luc
+        self.jumped = False  #nhay
+        self.direction = 0 #danh dau huong cua nhan vat
+    
+    def update(self):
+
+        dx = 0
+        dy = 0
+        run_cooldown = 5 # tang thoi gian chuyen tiep giua cac chu ki frame
+
+        # di chuyen nhan vat
+        key = pygame.key.get_pressed()
+        if key[pygame.K_UP] and self.jumped == False:
+            self.vel_y = -15
+            self.jumped = True
+        if key[pygame.K_UP] == False:
+            self.jumped = False
+        if key[pygame.K_LEFT]:
+            dx -= 4
+            self.counter += 1
+            self.direction = -1
+        if key[pygame.K_RIGHT]:
+            dx += 4
+            self.counter += 1
+            self.direction = 1
+        if key[pygame.K_LEFT] == False and key[pygame.K_RIGHT] == False:
+            self.counter = 0
+            self.index = 0
+            if self.direction == 1: #nhan vat di chuyen sang phai
+                self.image = self.idle_image_right
+            if self.direction == -1: #nhan vat di chuyen sang trai
+                self.image = self.idle_image_left
+            if self.direction == 0: # Initial state or after reset
+                self.image = self.idle_image_right
+
+
+        #animation nhan vat
+        if self.counter > run_cooldown:
+            self.counter = 0
+            self.index += 1
+            if self.index >= len(self.images_right):  # nếu duyệt qua hết các frame đưua trở về 0 bắt đầu lại
+                self.index = 0
+            if self.direction == 1: #nhan vat di chuyen sang phai
+                self.image = self.images_right[self.index]
+            if self.direction == -1: #nhan vat di chuyen sang trai
+                self.image = self.images_left[self.index]
+
+
+        #trọng lực
+        self.vel_y += 1
+        if self.vel_y > 10:
+            self.vel_y = 10
+        dy += self.vel_y
+
+
+        #check vật cản
+
+        #update vị trí nhân vật
+        self.rect.x += dx
+        self.rect.y += dy
+
+        if self.rect.bottom > screen_height:
+            self.rect.bottom = screen_height
+            dy = 0
+
+        screen.blit(self.image, self.rect) #anh va vi tri
+
+
+class World():
+    def __init__(self,data):
+        # Khởi tạo list rỗng để lưu trữ tất cả các tile
+        self.tile_list = [] #list chứa tile 
+        
+        # Tải tất cả các hình ảnh cần thiết
+        ground_img = pygame.image.load('assests/tileset/Forest Tileset/1 Tiles/Tile_12.png') # Ground tile (1)
+        dirt_img = pygame.image.load('assests/tileset/Forest Tileset/1 Tiles/Tile_02.png') # Dirt blocks (2)
+        grass_img = pygame.image.load('assests/objects/Plant Animations/Plant 1/Plant1_00000.png') # Plant1 (3)
+        blue_slime_img = pygame.image.load('assests/objects/Creep/Blue_Slime/idle/1.png') # Blue slime (5)
+        platform_x_img = pygame.image.load('assests/tileset/Forest Tileset/1 Tiles/Tile_08.png') # Platforms (6, 17)
+        lava_img = pygame.image.load('assests/tileset/Forest Tileset/1 Tiles/Tile_20.png') # Lava (8)
+        coin_img = pygame.image.load('assests/objects/Item/coin/1.png') # Coin (9)
+        exit_img = pygame.image.load('assests/objects/Item/flag/1.png') # Exit (10)
+        plant2_img = pygame.image.load('assests/objects/Plant Animations/Plant 2/Plant2_00000.png') # Plant2 (11)
+        plant3_img = pygame.image.load('assests/objects/Plant Animations/Plant 3/Plant3_00000.png') # Plant3 (12)
+        plant4_img = pygame.image.load('assests/objects/Plant Animations/Plant 4/Plant4_00000.png') if path.exists('assests/objects/Plant Animations/Plant 4/Plant4_00000.png') else grass_img # Plant4 (13)
+        plant5_img = pygame.image.load('assests/objects/Plant Animations/Plant 5/Plant5_00000.png') if path.exists('assests/objects/Plant Animations/Plant 5/Plant5_00000.png') else grass_img # Plant5 (14)
+        plant6_img = pygame.image.load('assests/objects/Plant Animations/Plant 6/Plant6_00000.png') if path.exists('assests/objects/Plant Animations/Plant 6/Plant6_00000.png') else grass_img # Plant6 (15)
+        rune_img = pygame.image.load('assests/objects/Item/rune/1.png') # Rune (16)
+        blue_flower1_img = pygame.image.load('assests/objects/Plant Animations/BlueFlower1/BlueFlower_00000.png') # BlueFlower1 (18)
+        blue_flower2_img = pygame.image.load('assests/objects/Plant Animations/BlueFlower2/BluePlantClosed_00000.png') # BlueFlower2 (19)
+       
+        row_count = 0  
+        for row in data:
+            col_count = 0 # Biến đếm cột hiện tại
+            for tile in row:
+                # Xử lý từng loại tile theo giá trị của nó
+                if tile == 1:  # Ground blocks
+                    img = pygame.transform.scale(ground_img, (tile_size, tile_size))
+                    img_rect = img.get_rect()
+                    img_rect.x = col_count * tile_size
+                    img_rect.y = row_count * tile_size
+                    tile = (img, img_rect)
+                    self.tile_list.append(tile)
+                    
+                elif tile == 2:  # Dirt blocks
+                    img = pygame.transform.scale(dirt_img, (tile_size, tile_size))
+                    img_rect = img.get_rect()
+                    img_rect.x = col_count * tile_size
+                    img_rect.y = row_count * tile_size
+                    tile = (img, img_rect)
+                    self.tile_list.append(tile)
+                    
+                elif tile == 3:  # Plant1
+                    img = pygame.transform.scale(grass_img, (tile_size*3, tile_size*3))
+                    img_rect = img.get_rect()
+                    img_rect.x = col_count * tile_size - tile_size
+                    img_rect.y = row_count * tile_size - tile_size + 6
+                    tile = (img, img_rect)
+                    self.tile_list.append(tile)
+                    
+                elif tile == 5:  # Blue slime
+                    img = pygame.transform.scale(blue_slime_img, (int(tile_size*2), int(tile_size * 1.5)))
+                    img_rect = img.get_rect()
+                    img_rect.x = col_count * tile_size - tile_size//2
+                    img_rect.y = row_count * tile_size - tile_size//2
+                    tile = (img, img_rect, 'enemy')  # Đánh dấu là kẻ thù
+                    self.tile_list.append(tile)
+                    
+                elif tile == 6:  # Platform X (top)
+                    img = pygame.transform.scale(platform_x_img, (tile_size, tile_size // 2))
+                    img_rect = img.get_rect()
+                    img_rect.x = col_count * tile_size
+                    img_rect.y = row_count * tile_size
+                    tile = (img, img_rect, 'platform_x')  # Đánh dấu là platform di chuyển ngang
+                    self.tile_list.append(tile)
+                    
+                elif tile == 17:  # Platform X (bottom)
+                    img = pygame.transform.scale(platform_x_img, (tile_size, tile_size // 2))
+                    img_rect = img.get_rect()
+                    img_rect.x = col_count * tile_size
+                    img_rect.y = row_count * tile_size + tile_size // 2 + 15
+                    tile = (img, img_rect, 'platform_x')  # Đánh dấu là platform di chuyển ngang
+                    self.tile_list.append(tile)
+                    
+                elif tile == 8:  # Lava
+                    img = pygame.transform.scale(lava_img, (tile_size, tile_size // 2))
+                    img_rect = img.get_rect()
+                    img_rect.x = col_count * tile_size
+                    img_rect.y = row_count * tile_size + (tile_size // 2)
+                    tile = (img, img_rect, 'lava')  # Đánh dấu là dung nham
+                    self.tile_list.append(tile)
+                    
+                elif tile == 9:  # Coin
+                    img = pygame.transform.scale(coin_img, (int(tile_size * 0.5), int(tile_size * 0.5)))
+                    img_rect = img.get_rect()
+                    # Center coin in its grid cell
+                    img_rect.centerx = col_count * tile_size + tile_size // 2
+                    img_rect.centery = row_count * tile_size + tile_size // 2
+                    tile = (img, img_rect, 'coin')  # Đánh dấu là đồng xu
+                    self.tile_list.append(tile)
+                    
+                elif tile == 10:  # Exit
+                    img = pygame.transform.scale(exit_img, (int(tile_size*1.5), int(tile_size * 2.25)))
+                    img_rect = img.get_rect()
+                    img_rect.x = col_count * tile_size - tile_size//4
+                    img_rect.y = row_count * tile_size - (tile_size * 0.75)
+                    tile = (img, img_rect, 'exit')  # Đánh dấu là lối ra
+                    self.tile_list.append(tile)
+                    
+                elif tile == 11:  # Plant2
+                    img = pygame.transform.scale(plant2_img, (tile_size*3, tile_size*3))
+                    img_rect = img.get_rect()
+                    img_rect.x = col_count * tile_size - tile_size
+                    img_rect.y = row_count * tile_size - tile_size + 6
+                    tile = (img, img_rect)
+                    self.tile_list.append(tile)
+                    
+                elif tile == 12:  # Plant3
+                    img = pygame.transform.scale(plant3_img, (tile_size*3, tile_size*3))
+                    img_rect = img.get_rect()
+                    img_rect.x = col_count * tile_size - tile_size
+                    img_rect.y = row_count * tile_size - tile_size + 6
+                    tile = (img, img_rect)
+                    self.tile_list.append(tile)
+                    
+                elif tile == 13:  # Plant4
+                    img = pygame.transform.scale(plant4_img, (tile_size*3, tile_size*3))
+                    img_rect = img.get_rect()
+                    img_rect.x = col_count * tile_size - tile_size
+                    img_rect.y = row_count * tile_size - tile_size + 6
+                    tile = (img, img_rect)
+                    self.tile_list.append(tile)
+                    
+                elif tile == 14:  # Plant5
+                    img = pygame.transform.scale(plant5_img, (tile_size*3, tile_size*3))
+                    img_rect = img.get_rect()
+                    img_rect.x = col_count * tile_size - tile_size
+                    img_rect.y = row_count * tile_size - tile_size + 6
+                    tile = (img, img_rect)
+                    self.tile_list.append(tile)
+                    
+                elif tile == 15:  # Plant6
+                    img = pygame.transform.scale(plant6_img, (tile_size*3, tile_size*3))
+                    img_rect = img.get_rect()
+                    img_rect.x = col_count * tile_size - tile_size
+                    img_rect.y = row_count * tile_size - tile_size + 6
+                    tile = (img, img_rect)
+                    self.tile_list.append(tile)
+                    
+                elif tile == 16:  # Rune
+                    img = pygame.transform.scale(rune_img, (int(tile_size * 0.5), int(tile_size * 0.5)))
+                    img_rect = img.get_rect()
+                    # Center rune in its grid cell
+                    img_rect.centerx = col_count * tile_size + tile_size // 2
+                    img_rect.centery = row_count * tile_size + tile_size // 2
+                    tile = (img, img_rect, 'rune')  # Đánh dấu là rune
+                    self.tile_list.append(tile)
+                    
+                elif tile == 18:  # BlueFlower1
+                    img = pygame.transform.scale(blue_flower1_img, (tile_size*3, tile_size*3))
+                    img_rect = img.get_rect()
+                    img_rect.x = col_count * tile_size - tile_size
+                    img_rect.y = row_count * tile_size - tile_size + 6
+                    tile = (img, img_rect)
+                    self.tile_list.append(tile)
+                    
+                elif tile == 19:  # BlueFlower2
+                    img = pygame.transform.scale(blue_flower2_img, (tile_size*3, tile_size*3))
+                    img_rect = img.get_rect()
+                    img_rect.x = col_count * tile_size - tile_size
+                    img_rect.y = row_count * tile_size - tile_size + 6
+                    tile = (img, img_rect)
+                    self.tile_list.append(tile)
+                
+                # Tăng chỉ số cột sau khi xử lý một ô
+                col_count += 1
+            # Tăng chỉ số hàng sau khi xử lý một hàng hoàn chỉnh
+            row_count += 1
+
+    def draw(self):
+        for tile in self.tile_list:
+            screen.blit(tile[0], tile[1]) #lôi tuple trong tile_list ra vị trí tile[0] là ảnh, tile[1] là vị trí
+
+
+# Hàm để tải dữ liệu level từ file
+def load_level_data(level_number):
+    level_file = f'levels/level.data/level{level_number}_data'
     try:
-        logo = pygame.image.load('assests/gui/PNG/menu/LogoWindStride.png').convert_alpha()
-        logo = pygame.transform.scale(logo, (32, 32))
-        pygame.display.set_icon(logo)
-    except pygame.error:
-        print("Không thể tải icon!")
-    run_level(screen, screen_width, screen_height)
+        if path.exists(level_file):
+            pickle_in = open(level_file, 'rb')
+            data = pickle.load(pickle_in)
+            pickle_in.close()
+            print(f"Level data loaded from {level_file}")
+            return data
+        else:
+            print(f"File not found: {level_file}")
+            # Trả về dữ liệu mặc định nếu không tìm thấy file
+            return [
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            ]
+    except Exception as e:
+        print(f"Error loading level: {e}")
+        return None
+
+#Lop nhan vat
+player = Player(35, screen_height - 210) #Vị trí khởi đầu của nhân vật
+# Tải dữ liệu level từ file level1_data
+world_data = load_level_data(1)
+world = World(world_data)
+
+run = True
+#vòng lặp xử lý sự kiện game
+while run:
+
+    clock.tick(fps) #fps
+    screen.blit(background_img,(0,0)) #Tải background từ góc trái bên trên
+    world.draw()
+    #draw_grid()
+
+    player.update()
     
-    pygame.quit()
-    sys.exit()
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            run = False    
+
+    pygame.display.update() #cập nhật màn hình
+pygame.quit()
