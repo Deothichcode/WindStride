@@ -124,12 +124,12 @@ def draw_world():
 					screen.blit(img, (col * tile_size - tile_size//2, row * tile_size - tile_size//2))
 				if world_data[row][col] == 6:
 					# Horizontally moving platform - at top of tile
-					img = pygame.transform.scale(platform_x_img, (tile_size, tile_size // 2))
+					img = pygame.transform.scale(platform_x_img, (tile_size, tile_size // 1.5))
 					screen.blit(img, (col * tile_size, row * tile_size))
 				if world_data[row][col] == 17:
 					# Platform at bottom of tile
-					img = pygame.transform.scale(platform_x_img, (tile_size, tile_size // 2))
-					screen.blit(img, (col * tile_size, row * tile_size + tile_size // 2 + 15))
+					img = pygame.transform.scale(platform_x_img, (tile_size, tile_size // 1.5))
+					screen.blit(img, (col * tile_size, row * tile_size + tile_size // 2 + 11))
 				if world_data[row][col] == 8:
 					
 					img = pygame.transform.scale(lava_img, (tile_size, tile_size // 2))

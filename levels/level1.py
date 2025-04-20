@@ -45,13 +45,13 @@ class Player():
         self.images_left = [] #di sang trai
         self.index = 0
         self.counter = 0
-        for num in range(1,7): # 8 frame chay
+        for num in range(1,7): # 7 frame chay
             img_right = pygame.image.load(f'assests/character/male/run/run{num}.png') #frame chay
             img_right = pygame.transform.scale(img_right, (115, 115)) 
             img_left = pygame.transform.flip(img_right,True, False)  #lat nguoc nhan vat theo truc x not y
             self.images_right.append(img_right)
             self.images_left.append(img_left)
-        # Load idle frame
+        # Load frame dung yen
         self.idle_image_right = pygame.image.load('assests/character/male/idle/Idle.png')
         self.idle_image_right = pygame.transform.scale(self.idle_image_right, (115, 115))
         self.idle_image_left = pygame.transform.flip(self.idle_image_right, True, False)
@@ -91,7 +91,7 @@ class Player():
                 self.image = self.idle_image_right
             if self.direction == -1: #nhan vat di chuyen sang trai
                 self.image = self.idle_image_left
-            if self.direction == 0: # Initial state or after reset
+            if self.direction == 0:
                 self.image = self.idle_image_right
 
 
@@ -188,7 +188,7 @@ class World():
                     self.tile_list.append(tile)
                     
                 elif tile == 6:  # Platform X (top)
-                    img = pygame.transform.scale(platform_x_img, (tile_size, tile_size // 2))
+                    img = pygame.transform.scale(platform_x_img, (tile_size, tile_size // 1.5))
                     img_rect = img.get_rect()
                     img_rect.x = col_count * tile_size
                     img_rect.y = row_count * tile_size
@@ -196,10 +196,10 @@ class World():
                     self.tile_list.append(tile)
                     
                 elif tile == 17:  # Platform X (bottom)
-                    img = pygame.transform.scale(platform_x_img, (tile_size, tile_size // 2))
+                    img = pygame.transform.scale(platform_x_img, (tile_size, tile_size // 1.5))
                     img_rect = img.get_rect()
                     img_rect.x = col_count * tile_size
-                    img_rect.y = row_count * tile_size + tile_size // 2 + 15
+                    img_rect.y = row_count * tile_size + tile_size // 2 + 11
                     tile = (img, img_rect, 'platform_x')  # Đánh dấu là platform di chuyển ngang
                     self.tile_list.append(tile)
                     
