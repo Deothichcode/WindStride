@@ -145,14 +145,17 @@ class Game:
         self.volume = 70  # Mức âm lượng mặc định (0-100)
         self.dragging_slider = False  # Trạng thái đang kéo thanh trượt
         
-        # Tải nhạc menu
+        # Tải nhạc menu và game
         try:
             self.menu_music = pygame.mixer.Sound('assests/sfx/menusfx/WhereWindWhispers.mp3')
+            self.game_music = pygame.mixer.Sound('assests/sfx/menusfx/NinjaSchool.mp3')
             self.menu_music.set_volume(self.volume / 100.0)  # Thiết lập âm lượng ban đầu (0.0 - 1.0)
+            self.game_music.set_volume(self.volume / 100.0)
             self.music_playing = False  # Trạng thái đang phát nhạc
         except pygame.error as e:
-            print(f"Không thể tải nhạc menu: {e}")
+            print(f"Không thể tải nhạc: {e}")
             self.menu_music = None
+            self.game_music = None
         
         # Cài đặt âm thanh hiệu ứng
         self.sound_effect_on = True  # Trạng thái âm thanh hiệu ứng mặc định là bật
@@ -464,10 +467,14 @@ class Game:
                         print(f"Chọn màn chơi {level_number}")
                         self.current_level = level_number
                         
+                         # Cập nhật màn hình lần cuối trước khi chuyển
+                        pygame.display.flip()
+                        
                         # Pre-load level
                         if self.current_level == 1:
                             import levels.level1 as level1
                             self.preloaded_level = level1
+
                         # Hiển thị màn hình loading
                         self.show_loading_screen()
                         self.state = "game"
@@ -553,7 +560,7 @@ class Game:
             self.screen.blit(percent_text, percent_rect)
             
             tips = [
-                "Đừng quên thu thập đủ sao nhé chiến binh!!!"
+                "Đừng quên thu thập đủ vàng nhé chiến binh!!!"
             ]
             current_tip = random.choice(tips)
             tip_text = self.font_small2.render(current_tip, True, (200, 200, 200))

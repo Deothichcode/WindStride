@@ -557,20 +557,45 @@ player = Player(35, screen_height - 210) #Vị trí khởi đầu của nhân v�
 world_data = load_level_data(1)
 world = World(world_data)
 
-run = True
-#vòng lặp xử lý sự kiện game
-while run:
 
-    clock.tick(fps) #fps
-    screen.blit(background_img,(0,0)) #Tải background từ góc trái bên trên
-    world.draw()
-    #draw_grid()
+def run_level(screen, screen_width, screen_height):
+    # Khởi tạo âm thanh
+    try:
+        game_music = pygame.mixer.Sound('assests/sfx/menusfx/NinjaSchool.mp3')
+        game_music.set_volume(0.7)  # Đặt âm lượng mặc định 
+        game_music.play(-1)  # Phát nhạc lặp lại
+    except pygame.error as e:
+        print(f"Không thể tải nhạc game: {e}")
+        game_music = None
 
-    player.update()
+    #vòng lặp xử lý sự kiện game
+    run = True
+    while run:
+        clock.tick(fps)
+        screen.blit(background_img,(0,0))
+        world.draw()
+        #draw_grid()
+        player.update()
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                if game_music:
+                    game_music.stop()
+                pygame.quit()
+                #sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    if game_music:
+                        game_music.stop()
+                    pygame.quit()
+                    #sys.exit()
+
+        pygame.display.update()
     
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            run = False    
+    return True  # Trả về True để quay lại menu
 
-    pygame.display.update() #cập nhật màn hình
-pygame.quit()
+# Chỉ chạy trực tiếp file này khi test
+if __name__ == "__main__":
+    pygame.init()
+    screen = pygame.display.set_mode((screen_with, screen_height))
+    run_level(screen, screen_with, screen_height)
