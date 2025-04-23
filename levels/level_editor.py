@@ -186,7 +186,7 @@ def draw_world():
 					screen.blit(img, (rune_x, rune_y))
 				if world_data[row][col] == 20:
 					# Green slime enemy - scaled 3x larger
-					img = pygame.transform.scale(green_slime_img, (int(tile_size*0.65), int(tile_size*0.65)))
+					img = pygame.transform.scale(green_slime_img, (int(tile_size*0.5), int(tile_size*0.5)))
 					screen.blit(img, ((col * tile_size - tile_size//2)-15, (row * tile_size - tile_size//2)))
 				if world_data[row][col] == 21:
 					# Skeleton - scaled 3x larger
