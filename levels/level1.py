@@ -112,39 +112,60 @@ class Player():
     def __init__(self, x, y):
         self.images_right = [] #list frame di sang phai
         self.images_left = [] #list frame di sang trai
+        self.images_jump_right = [] #list frame nhảy sang phải
+        self.images_jump_left = [] #list frame nhảy sang trái
         self.index = 0 #thu tu frame
         self.counter = 0 #thoi gian lam moi frame
-        for num in range(1,7): # 7 frame chay
-            img_right = pygame.image.load(f'assests/character/male/run/run{num}.png') #frame chay
-            img_right = pygame.transform.scale(img_right, (115, 115)) 
-            img_left = pygame.transform.flip(img_right,True, False)  #lat nguoc nhan vat theo truc x not y
+        
+        # Load frames chạy
+        for num in range(1,7):
+            img_right = pygame.image.load(f'assests/character/male/run/run{num}.png')
+            img_right = pygame.transform.scale(img_right, (115, 115))
+            img_left = pygame.transform.flip(img_right, True, False)
             self.images_right.append(img_right)
             self.images_left.append(img_left)
-        # Load frame dung yen
+            
+        # Load frames nhảy
+        for num in range(1,8):
+            img_jump_right = pygame.image.load(f'assests/character/male/jump/j{num}.png')
+            img_jump_right = pygame.transform.scale(img_jump_right, (115, 115))
+            img_jump_left = pygame.transform.flip(img_jump_right, True, False)
+            self.images_jump_right.append(img_jump_right)
+            self.images_jump_left.append(img_jump_left)
+
+        # Load frame đứng yên
         self.idle_image_right = pygame.image.load('assests/character/male/idle/Idle.png')
         self.idle_image_right = pygame.transform.scale(self.idle_image_right, (115, 115))
         self.idle_image_left = pygame.transform.flip(self.idle_image_right, True, False)
         self.image = self.idle_image_right
         self.rect = self.image.get_rect()
-        self.rect.x = x #di chuyen sang 2 ben
-        self.rect.y = y #di chuyen len xuong
-        self.vel_y = 0 #trong luc
-        self.jumped = False  #nhay
-        self.direction = 0 #danh dau huong cua nhan vat
-    
-    def update(self):
+        self.rect.x = x
+        self.rect.y = y
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
+        self.vel_y = 0
+        self.jumped = False
+        self.direction = 0
+        self.in_air = False  # Biến kiểm tra nhân vật có đang trong không trung
 
+    def update(self):
         dx = 0
         dy = 0
-        run_cooldown = 5 # tang thoi gian chuyen tiep giua cac chu ki frame
+        walk_cooldown = 5
+        jump_cooldown = 6  # Cooldown cho animation nhảy
 
-        # di chuyen nhan vat
+        # Lấy trạng thái phím
         key = pygame.key.get_pressed()
-        if key[pygame.K_UP] and self.jumped == False:
+        
+        # Xử lý nhảy
+        if key[pygame.K_UP] and not self.jumped and not self.in_air:
             self.vel_y = -15
             self.jumped = True
-        if key[pygame.K_UP] == False:
-            self.jumped = False
+            self.in_air = True
+            self.counter = 0  # Reset counter cho animation nhảy
+            self.index = 0    # Reset index cho animation nhảy
+            
+        # Xử lý di chuyển trái/phải
         if key[pygame.K_LEFT]:
             dx -= 4
             self.counter += 1
@@ -153,47 +174,63 @@ class Player():
             dx += 4
             self.counter += 1
             self.direction = 1
-        if key[pygame.K_LEFT] == False and key[pygame.K_RIGHT] == False:
+            
+        # Animation khi đứng yên (không di chuyển và không nhảy)
+        if not (key[pygame.K_LEFT] or key[pygame.K_RIGHT]) and not self.in_air:
             self.counter = 0
             self.index = 0
-            if self.direction == 1: #nhan vat di chuyen sang phai
+            if self.direction == 1:
                 self.image = self.idle_image_right
-            if self.direction == -1: #nhan vat di chuyen sang trai
+            elif self.direction == -1:
                 self.image = self.idle_image_left
-            if self.direction == 0:
+            else:
                 self.image = self.idle_image_right
 
-
-        #animation nhan vat
-        if self.counter > run_cooldown:
+        # Animation khi nhảy
+        if self.in_air:
+            if self.counter > jump_cooldown:
+                self.counter = 0
+                self.index += 1
+                if self.index >= len(self.images_jump_right):
+                    self.index = len(self.images_jump_right) - 1
+                if self.direction >= 0:  # Nhảy sang phải hoặc thẳng
+                    self.image = self.images_jump_right[self.index]
+                else:  # Nhảy sang trái
+                    self.image = self.images_jump_left[self.index]
+        # Animation khi chạy (không trong không trung)
+        elif self.counter > walk_cooldown:
             self.counter = 0
             self.index += 1
-            if self.index >= len(self.images_right):  # nếu duyệt qua hết các frame đưua trở về 0 bắt đầu lại
+            if self.index >= len(self.images_right):
                 self.index = 0
-            if self.direction == 1: #nhan vat di chuyen sang phai
+            if self.direction == 1:
                 self.image = self.images_right[self.index]
-            if self.direction == -1: #nhan vat di chuyen sang trai
+            if self.direction == -1:
                 self.image = self.images_left[self.index]
 
-
-        #trọng lực
+        # Áp dụng trọng lực
         self.vel_y += 1
         if self.vel_y > 10:
             self.vel_y = 10
         dy += self.vel_y
 
+    
 
-        #check vật cản
 
-        #update vị trí nhân vật
+        # Cập nhật vị trí
         self.rect.x += dx
         self.rect.y += dy
 
+        # Kiểm tra va chạm với đất
         if self.rect.bottom > screen_height:
             self.rect.bottom = screen_height
             dy = 0
+            self.jumped = False
+            self.in_air = False
 
-        screen.blit(self.image, self.rect) #anh va vi tri
+        # Vẽ nhân vật
+        screen.blit(self.image, self.rect)
+        #pygame.draw.rect(screen, (255, 0, 0), self.rect, 2)  # Vẽ hình chữ nhật xung quanh nhân vật để kiểm tra va chạm
 
 
 class World():
@@ -518,6 +555,10 @@ class World():
         for tile in self.tile_list:
             if len(tile) > 2 and tile[2] in ['lava', 'platform_x']:
                 screen.blit(tile[0], tile[1])
+        
+        for tile in self.tile_list:
+                screen.blit(tile[0], tile[1])
+                #pygame.draw.rect(screen, (255, 0, 0), tile[1], 2)  # Vẽ hình chữ nhật xung quanh các tile để kiểm tra va chạm
 
 
 # Hàm để tải dữ liệu level từ file
