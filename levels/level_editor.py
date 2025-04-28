@@ -122,8 +122,8 @@ def draw_world():
 					screen.blit(img, (col * tile_size - tile_size, row * tile_size - tile_size + 6))
 				if world_data[row][col] == 5:
 					# Blue slime enemy - scaled 3x larger
-					img = pygame.transform.scale(blue_slime_img, (int(tile_size*2), int(tile_size * 1.5)))
-					screen.blit(img, (col * tile_size - tile_size//2, row * tile_size - tile_size//2))
+					img = pygame.transform.scale(blue_slime_img, (int(tile_size * 0.6), int(tile_size * 0.6)))
+					screen.blit(img, (col * tile_size + 15, row * tile_size + 26))
 				if world_data[row][col] == 6:
 					# Horizontally moving platform - at top of tile
 					img = pygame.transform.scale(platform_x_img, (tile_size, tile_size // 1.5))
@@ -185,13 +185,13 @@ def draw_world():
 					rune_y = row * tile_size + (tile_size - int(tile_size * 0.5)) // 2
 					screen.blit(img, (rune_x, rune_y))
 				if world_data[row][col] == 20:
-					# Green slime enemy - scaled 3x larger
-					img = pygame.transform.scale(green_slime_img, (int(tile_size*0.5), int(tile_size*0.5)))
-					screen.blit(img, ((col * tile_size - tile_size//2)-15, (row * tile_size - tile_size//2)))
+					# Green slime enemy - scaled to fit one tile
+					img = pygame.transform.scale(green_slime_img, (tile_size*0.6, tile_size*0.6))
+					screen.blit(img, (col * tile_size + 15, row * tile_size + 26))
 				if world_data[row][col] == 21:
-					# Skeleton - scaled 3x larger
-					img = pygame.transform.scale(skeleton_img, (int(tile_size*2), int(tile_size * 1.5)))
-					screen.blit(img, (col * tile_size - tile_size//2, row * tile_size - tile_size//2))
+					# Skeleton - scaled to fit one tile
+					img = pygame.transform.scale(skeleton_img, (tile_size*0.8, tile_size*1.3))
+					screen.blit(img, (col * tile_size + 6, row * tile_size - 17))
 class Button():
 	def __init__(self, x, y, image):
 		self.image = image
