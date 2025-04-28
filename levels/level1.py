@@ -254,12 +254,12 @@ class Player():
 
 class World():
     def __init__(self,data):
-        # Khởi tạo list rỗng để lưu trữ tất cả các tile
-        self.tile_list = [] #list chứa tile 
-        self.animated_tiles = [] # List for animated tiles
-        self.animation_frames = {} # Dictionary to store animation frames
-        self.animation_count = 0
-        self.animation_index = 0
+        self.tile_list = []
+        self.animated_tiles = []
+        self.enemies = []  # Thêm list để lưu các enemy
+        self.animation_frames = {}  # Dictionary lưu các frame animation
+        self.animation_count = 0  # Biến đếm cho animation
+        self.animation_index = 0  # Index hiện tại của animation
         
         # Tải tất cả các hình ảnh cần thiết FIRST
         ground_img = pygame.image.load('assests/tileset/Forest Tileset/1 Tiles/Tile_12.png') # Ground tile (1)
@@ -380,13 +380,9 @@ class World():
                     tile = (img, img_rect, 'plant')  # Đánh dấu cho hoạt ảnh
                     self.animated_tiles.append(tile)
                     
-                elif tile == 5:  # Blue slime - Tĩnh
-                    img = pygame.transform.scale(blue_slime_img, (int(tile_size*0.6), int(tile_size * 0.6)))
-                    img_rect = img.get_rect()
-                    img_rect.x = col_count * tile_size + 15
-                    img_rect.y = row_count * tile_size + 26
-                    tile = (img, img_rect, 'enemy')  # Đánh dấu là kẻ thù
-                    self.tile_list.append(tile)
+                elif tile == 5:  # Blue slime
+                    enemy = Enemy(col_count * tile_size, row_count * tile_size, 'blue_slime')
+                    self.enemies.append(enemy)
                     
                 elif tile == 6:  # Platform X (top)
                     img = pygame.transform.scale(platform_x_img, (tile_size, tile_size // 1.5))
@@ -493,20 +489,12 @@ class World():
                     img_rect.y = row_count * tile_size - tile_size + 6
                     tile = (img, img_rect, 'blue_flower2')  # Sử dụng định danh duy nhất
                     self.animated_tiles.append(tile)
-                elif tile == 20:  # green slime - Tĩnh
-                    img = pygame.transform.scale(green_slime_img, (int(tile_size * 0.6), int(tile_size * 0.6)))
-                    img_rect = img.get_rect()
-                    img_rect.x = col_count * tile_size + 15
-                    img_rect.y = row_count * tile_size + 26
-                    tile = (img, img_rect, 'enemy')  # Đánh dấu là kẻ thù
-                    self.tile_list.append(tile)
-                elif tile == 21:  # skeleton - Tĩnh
-                    img = pygame.transform.scale(skeleton_img, (int(tile_size * 0.8), int(tile_size*1.3)))
-                    img_rect = img.get_rect()
-                    img_rect.x = col_count * tile_size+6
-                    img_rect.y = row_count * tile_size-17
-                    tile = (img, img_rect, 'enemy')  # Đánh dấu là kẻ thù
-                    self.tile_list.append(tile)
+                elif tile == 20:  # Green slime
+                    enemy = Enemy(col_count * tile_size, row_count * tile_size, 'green_slime')
+                    self.enemies.append(enemy)
+                elif tile == 21:  # Skeleton
+                    enemy = Enemy(col_count * tile_size, row_count * tile_size, 'skeleton')
+                    self.enemies.append(enemy)
                 
                 # Tăng chỉ số cột sau khi xử lý một ô
                 col_count += 1
@@ -593,6 +581,51 @@ class World():
         for tile in self.tile_list:
                 screen.blit(tile[0], tile[1])
                 pygame.draw.rect(screen, (255, 0, 0), tile[1], 2)  # Vẽ hình chữ nhật xung quanh các tile để kiểm tra va chạm
+        
+        # Cập nhật và vẽ enemies
+        for enemy in self.enemies:
+            enemy.update()
+            enemy.draw(screen)
+
+
+class Enemy():
+    def __init__(self, x, y, enemy_type):
+        self.enemy_type = enemy_type
+        
+        # Load hình ảnh dựa trên loại enemy
+        if enemy_type == 'blue_slime':
+            img = pygame.image.load('assests/objects/Creep/Blue_Slime/idle/1.png')
+            self.image = pygame.transform.scale(img, (int(tile_size*0.6), int(tile_size*0.6)))
+        elif enemy_type == 'green_slime':
+            img = pygame.image.load('assests/objects/Creep/Green_Slime/idle/1.png')
+            self.image = pygame.transform.scale(img, (int(tile_size*0.6), int(tile_size*0.6)))
+        elif enemy_type == 'skeleton':
+            img = pygame.image.load('assests/objects/Creep/Skeleton/idle/1.png')
+            self.image = pygame.transform.scale(img, (int(tile_size*0.8), int(tile_size*1.3)))
+            
+        # Set up rect và hitbox
+        self.rect = self.image.get_rect()
+        self.rect.centerx = x + tile_size // 2   # Căn giữa theo chiều ngang
+        self.rect.bottom = y + tile_size # Đặt ở dưới cùng của ô
+        
+        # Hitbox nhỏ hơn sprite
+        self.hitbox = pygame.Rect(
+            self.rect.x,
+            self.rect.y,
+            self.rect.width,
+            self.rect.height
+        )
+        
+    def update(self):      
+        # Cập nhật hitbox theo vị trí mới
+        self.hitbox.x = self.rect.x + 10
+        self.hitbox.y = self.rect.y + 1
+        
+    def draw(self, screen):
+        # Vẽ enemy
+        screen.blit(self.image, self.rect)
+        # Vẽ hitbox cho debug
+        pygame.draw.rect(screen, (255, 0, 0), self.hitbox, 2)
 
 
 # Hàm để tải dữ liệu level từ file
@@ -649,7 +682,7 @@ def run_level(screen, screen_width, screen_height):
         clock.tick(fps)
         screen.blit(background_img,(0,0))
         world.draw()
-        draw_grid()
+        #draw_grid()
         player.update()
         
         for event in pygame.event.get():
