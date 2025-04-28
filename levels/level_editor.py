@@ -45,8 +45,11 @@ plant6_img = pygame.image.load('assests/objects/Plant Animations/Plant 6/Plant6_
 # Blue flowers
 blue_flower1_img = pygame.image.load('assests/objects/Plant Animations/BlueFlower1/BlueFlower_00000.png')
 blue_flower2_img = pygame.image.load('assests/objects/Plant Animations/BlueFlower2/BluePlantClosed_00000.png')
-# Blue slime
+#creep
 blue_slime_img = pygame.image.load('assests/objects/Creep/Blue_Slime/idle/1.png')
+green_slime_img = pygame.image.load('assests/objects/Creep/Green_Slime/idle/1.png')
+skeleton_img = pygame.image.load('assests/objects/Creep/Skeleton/idle/1.png')
+#others
 platform_x_img = pygame.image.load('assests/tileset/Forest Tileset/1 Tiles/Tile_08.png')
 lava_img = pygame.image.load('assests/tileset/Forest Tileset/1 Tiles/Tile_20.png')
 coin_img = pygame.image.load('assests/objects/Item/coin/1.png')
@@ -119,8 +122,8 @@ def draw_world():
 					screen.blit(img, (col * tile_size - tile_size, row * tile_size - tile_size + 6))
 				if world_data[row][col] == 5:
 					# Blue slime enemy - scaled 3x larger
-					img = pygame.transform.scale(blue_slime_img, (int(tile_size*2), int(tile_size * 1.5)))
-					screen.blit(img, (col * tile_size - tile_size//2, row * tile_size - tile_size//2))
+					img = pygame.transform.scale(blue_slime_img, (int(tile_size * 0.6), int(tile_size * 0.6)))
+					screen.blit(img, (col * tile_size + 15, row * tile_size + 26))
 				if world_data[row][col] == 6:
 					# Horizontally moving platform - at top of tile
 					img = pygame.transform.scale(platform_x_img, (tile_size, tile_size // 1.5))
@@ -181,8 +184,14 @@ def draw_world():
 					rune_x = col * tile_size + (tile_size - int(tile_size * 0.5)) // 2
 					rune_y = row * tile_size + (tile_size - int(tile_size * 0.5)) // 2
 					screen.blit(img, (rune_x, rune_y))
-
-
+				if world_data[row][col] == 20:
+					# Green slime enemy - scaled to fit one tile
+					img = pygame.transform.scale(green_slime_img, (tile_size*0.6, tile_size*0.6))
+					screen.blit(img, (col * tile_size + 15, row * tile_size + 26))
+				if world_data[row][col] == 21:
+					# Skeleton - scaled to fit one tile
+					img = pygame.transform.scale(skeleton_img, (tile_size*0.8, tile_size*1.3))
+					screen.blit(img, (col * tile_size + 6, row * tile_size - 17))
 class Button():
 	def __init__(self, x, y, image):
 		self.image = image
@@ -312,7 +321,7 @@ while run:
 						world_data[y][x] = 5
 					if world_data[y][x] == 7:
 						world_data[y][x] = 8
-					if world_data[y][x] > 19:
+					if world_data[y][x] > 22:
 						world_data[y][x] = 0
 				elif pygame.mouse.get_pressed()[2] == 1:
 					# Don't change the bottom row tiles

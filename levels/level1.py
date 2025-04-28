@@ -26,7 +26,7 @@ except pygame.error:
 background_img = pygame.image.load('assests/background/PNG/game_background_2/game_background_2.png')
 background_img = pygame.transform.scale(background_img, (screen_with, screen_height))
 
-tile_size = 60 #mỗi ô grid có pixel là 100x100
+tile_size = 60 #mỗi ô grid có pixel là 60
 def draw_grid():
     # Tính số lượng đường cần vẽ dựa trên kích thước màn hình
     horizontal_lines = screen_height // tile_size + 1
@@ -120,7 +120,7 @@ class Player():
         # Load frames chạy
         for num in range(1,7):
             img_right = pygame.image.load(f'assests/character/male/run/run{num}.png')
-            img_right = pygame.transform.scale(img_right, (115, 115))
+            img_right = pygame.transform.scale(img_right, (47, 74))
             img_left = pygame.transform.flip(img_right, True, False)
             self.images_right.append(img_right)
             self.images_left.append(img_left)
@@ -128,21 +128,24 @@ class Player():
         # Load frames nhảy
         for num in range(1,8):
             img_jump_right = pygame.image.load(f'assests/character/male/jump/j{num}.png')
-            img_jump_right = pygame.transform.scale(img_jump_right, (115, 115))
+            img_jump_right = pygame.transform.scale(img_jump_right, (47,74))
             img_jump_left = pygame.transform.flip(img_jump_right, True, False)
             self.images_jump_right.append(img_jump_right)
             self.images_jump_left.append(img_jump_left)
 
         # Load frame đứng yên
         self.idle_image_right = pygame.image.load('assests/character/male/idle/Idle.png')
-        self.idle_image_right = pygame.transform.scale(self.idle_image_right, (115, 115))
+        self.idle_image_right = pygame.transform.scale(self.idle_image_right, (47, 74))
         self.idle_image_left = pygame.transform.flip(self.idle_image_right, True, False)
         self.image = self.idle_image_right
-        self.rect = self.image.get_rect()
+        
+        # Khôi phục kích thước hitbox về như cũ
+        self.width = 47  # Chiều rộng hitbox
+        self.height = 74 # Chiều cao hitbox
+        self.rect = pygame.Rect(0, 0, self.width, self.height)
         self.rect.x = x
         self.rect.y = y
-        self.width = self.image.get_width()
-        self.height = self.image.get_height()
+        
         self.vel_y = 0
         self.jumped = False
         self.direction = 0
@@ -152,7 +155,7 @@ class Player():
         dx = 0
         dy = 0
         walk_cooldown = 5
-        jump_cooldown = 6  # Cooldown cho animation nhảy
+        jump_cooldown = 6
 
         # Lấy trạng thái phím
         key = pygame.key.get_pressed()
@@ -162,8 +165,8 @@ class Player():
             self.vel_y = -15
             self.jumped = True
             self.in_air = True
-            self.counter = 0  # Reset counter cho animation nhảy
-            self.index = 0    # Reset index cho animation nhảy
+            self.counter = 0
+            self.index = 0
             
         # Xử lý di chuyển trái/phải
         if key[pygame.K_LEFT]:
@@ -175,7 +178,7 @@ class Player():
             self.counter += 1
             self.direction = 1
             
-        # Animation khi đứng yên (không di chuyển và không nhảy)
+        # Xử lý animation
         if not (key[pygame.K_LEFT] or key[pygame.K_RIGHT]) and not self.in_air:
             self.counter = 0
             self.index = 0
@@ -186,18 +189,17 @@ class Player():
             else:
                 self.image = self.idle_image_right
 
-        # Animation khi nhảy
+        # Animation nhảy và chạy
         if self.in_air:
             if self.counter > jump_cooldown:
                 self.counter = 0
                 self.index += 1
                 if self.index >= len(self.images_jump_right):
                     self.index = len(self.images_jump_right) - 1
-                if self.direction >= 0:  # Nhảy sang phải hoặc thẳng
+                if self.direction >= 0:
                     self.image = self.images_jump_right[self.index]
-                else:  # Nhảy sang trái
+                else:
                     self.image = self.images_jump_left[self.index]
-        # Animation khi chạy (không trong không trung)
         elif self.counter > walk_cooldown:
             self.counter = 0
             self.index += 1
@@ -214,14 +216,31 @@ class Player():
             self.vel_y = 10
         dy += self.vel_y
 
-    
-
+        # Xử lý va chạm với địa hình
+        for tile in world.tile_list:
+            # Va chạm theo chiều dọc
+            if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
+                if self.vel_y < 0:  # Đang nhảy lên
+                    dy = tile[1].bottom - self.rect.top
+                    self.vel_y = 0
+                elif self.vel_y >= 0:  # Đang rơi xuống
+                    dy = tile[1].top - self.rect.bottom
+                    self.vel_y = 0
+                    self.jumped = False
+                    self.in_air = False
+            # Va chạm theo chiều ngang
+            if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
+                dx = 0
 
         # Cập nhật vị trí
         self.rect.x += dx
         self.rect.y += dy
 
-        # Kiểm tra va chạm với đất
+        # Giới hạn màn hình
+        if self.rect.left < 0:
+            self.rect.left = 0
+        if self.rect.right > screen_with:
+            self.rect.right = screen_with
         if self.rect.bottom > screen_height:
             self.rect.bottom = screen_height
             dy = 0
@@ -229,8 +248,8 @@ class Player():
             self.in_air = False
 
         # Vẽ nhân vật
-        screen.blit(self.image, self.rect)
-        #pygame.draw.rect(screen, (255, 0, 0), self.rect, 2)  # Vẽ hình chữ nhật xung quanh nhân vật để kiểm tra va chạm
+        screen.blit(self.image, (self.rect.x, self.rect.y))
+        pygame.draw.rect(screen, (255, 0, 0), self.rect, 2)
 
 
 class World():
@@ -259,7 +278,8 @@ class World():
         rune_img = pygame.image.load('assests/objects/Item/rune/1.png') # Rune (16)
         blue_flower1_img = pygame.image.load('assests/objects/Plant Animations/BlueFlower1/BlueFlower_00000.png') # BlueFlower1 (18)
         blue_flower2_img = pygame.image.load('assests/objects/Plant Animations/BlueFlower2/BluePlantClosed_00000.png') # BlueFlower2 (19)
-       
+        green_slime_img = pygame.image.load('assests/objects/Creep/Green_Slime/idle/1.png') # Green slime
+        skeleton_img = pygame.image.load('assests/objects/Creep/Skeleton/idle/1.png') # Skeleton
         # tải các khung hình động cho các đối tượng khác nhau
         # Các khung hình động cho đồng xu
         coin_frames = []
@@ -361,10 +381,10 @@ class World():
                     self.animated_tiles.append(tile)
                     
                 elif tile == 5:  # Blue slime - Tĩnh
-                    img = pygame.transform.scale(blue_slime_img, (int(tile_size*2), int(tile_size * 1.5)))
+                    img = pygame.transform.scale(blue_slime_img, (int(tile_size*0.6), int(tile_size * 0.6)))
                     img_rect = img.get_rect()
-                    img_rect.x = col_count * tile_size - tile_size//2
-                    img_rect.y = row_count * tile_size - tile_size//2
+                    img_rect.x = col_count * tile_size + 15
+                    img_rect.y = row_count * tile_size + 26
                     tile = (img, img_rect, 'enemy')  # Đánh dấu là kẻ thù
                     self.tile_list.append(tile)
                     
@@ -473,6 +493,20 @@ class World():
                     img_rect.y = row_count * tile_size - tile_size + 6
                     tile = (img, img_rect, 'blue_flower2')  # Sử dụng định danh duy nhất
                     self.animated_tiles.append(tile)
+                elif tile == 20:  # green slime - Tĩnh
+                    img = pygame.transform.scale(green_slime_img, (int(tile_size * 0.6), int(tile_size * 0.6)))
+                    img_rect = img.get_rect()
+                    img_rect.x = col_count * tile_size + 15
+                    img_rect.y = row_count * tile_size + 26
+                    tile = (img, img_rect, 'enemy')  # Đánh dấu là kẻ thù
+                    self.tile_list.append(tile)
+                elif tile == 21:  # skeleton - Tĩnh
+                    img = pygame.transform.scale(skeleton_img, (int(tile_size * 0.8), int(tile_size*1.3)))
+                    img_rect = img.get_rect()
+                    img_rect.x = col_count * tile_size+6
+                    img_rect.y = row_count * tile_size-17
+                    tile = (img, img_rect, 'enemy')  # Đánh dấu là kẻ thù
+                    self.tile_list.append(tile)
                 
                 # Tăng chỉ số cột sau khi xử lý một ô
                 col_count += 1
@@ -558,7 +592,7 @@ class World():
         
         for tile in self.tile_list:
                 screen.blit(tile[0], tile[1])
-                #pygame.draw.rect(screen, (255, 0, 0), tile[1], 2)  # Vẽ hình chữ nhật xung quanh các tile để kiểm tra va chạm
+                pygame.draw.rect(screen, (255, 0, 0), tile[1], 2)  # Vẽ hình chữ nhật xung quanh các tile để kiểm tra va chạm
 
 
 # Hàm để tải dữ liệu level từ file
@@ -615,7 +649,7 @@ def run_level(screen, screen_width, screen_height):
         clock.tick(fps)
         screen.blit(background_img,(0,0))
         world.draw()
-        #draw_grid()
+        draw_grid()
         player.update()
         
         for event in pygame.event.get():
