@@ -342,11 +342,11 @@ class Game:
         button_y += button_spacing + 38  # Dịch xuống cho hàng nút thứ hai + thêm 1cm (38px)
         
         # 3 nút còn lại xếp thành hàng ngang dưới nút Play, cách đều nhau
-        self.leader_button = Button(self, 'assests/gui/PNG/menu/leader.png', 
+        self.about_button = Button(self, 'assests/gui/PNG/menu/leader.png', 
                                     center_x - button_spacing - 30, button_y, button_scale)
         self.setting_button = Button(self, 'assests/gui/PNG/menu/setting.png', 
                                      center_x, button_y, button_scale)
-        self.about_button = Button(self, 'assests/gui/PNG/menu/about.png', 
+        self.leader_button = Button(self, 'assests/gui/PNG/menu/about.png', 
                                   center_x + button_spacing + 30, button_y, button_scale)
     
     def update_clouds(self, delta_time):
@@ -715,9 +715,9 @@ class Game:
         
         # Các phím điều khiển
         instructions = [
-            ["A, D:", "Di chuyển"],
-            ["Enter:", "Tấn công"],
-            ["Space:", "Nhảy"],
+            ["< >:", "Di chuyển"],
+            ["Z:", "Tấn công"],
+            ["^:", "Nhảy"],
             ["Shop:", "Người chơi dùng tiền để đổi vật phẩm"]
         ]
         
@@ -741,7 +741,7 @@ class Game:
         objective_rect = objective_title.get_rect(x=panel_x + 40, y=panel_y + 300)
         self.screen.blit(objective_title, objective_rect)
         
-        objective_text = "Người chơi sẽ vượt chướng ngại vật và đi tới cánh cổng để tới màn tiếp theo."
+        objective_text = "Người chơi sẽ vượt chướng ngại vật và đi tới đích để tới màn tiếp theo."
         max_text_width = panel_width - 80  # Đảm bảo không bị tràn ra ngoài
         wrapped_lines = self.wrap_text(objective_text, self.font_small, max_text_width)
 
