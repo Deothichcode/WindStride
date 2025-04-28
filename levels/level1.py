@@ -120,7 +120,7 @@ class Player():
         # Load frames chạy
         for num in range(1,7):
             img_right = pygame.image.load(f'assests/character/male/run/run{num}.png')
-            img_right = pygame.transform.scale(img_right, (47, 74))
+            img_right = pygame.transform.scale(img_right, (47 - 10, 74 - 10))
             img_left = pygame.transform.flip(img_right, True, False)
             self.images_right.append(img_right)
             self.images_left.append(img_left)
@@ -128,23 +128,27 @@ class Player():
         # Load frames nhảy
         for num in range(1,8):
             img_jump_right = pygame.image.load(f'assests/character/male/jump/j{num}.png')
-            img_jump_right = pygame.transform.scale(img_jump_right, (47,74))
+            img_jump_right = pygame.transform.scale(img_jump_right, (47 - 10,74 - 10))
             img_jump_left = pygame.transform.flip(img_jump_right, True, False)
             self.images_jump_right.append(img_jump_right)
             self.images_jump_left.append(img_jump_left)
 
         # Load frame đứng yên
         self.idle_image_right = pygame.image.load('assests/character/male/idle/Idle.png')
-        self.idle_image_right = pygame.transform.scale(self.idle_image_right, (47, 74))
+        self.idle_image_right = pygame.transform.scale(self.idle_image_right, (37, 64))
         self.idle_image_left = pygame.transform.flip(self.idle_image_right, True, False)
         self.image = self.idle_image_right
         
-        # Khôi phục kích thước hitbox về như cũ
-        self.width = 47  # Chiều rộng hitbox
-        self.height = 74 # Chiều cao hitbox
+        # Tạo hitbox nhỏ hơn sprite
+        self.width = 22  
+        self.height = 55 
         self.rect = pygame.Rect(0, 0, self.width, self.height)
-        self.rect.x = x
-        self.rect.y = y
+        
+
+        sprite_width = 37
+        sprite_height = 64
+        self.rect.x = x + (sprite_width - self.width) // 2  # Căn giữa theo chiều ngang
+        self.rect.y = y + (sprite_height - self.height) // 2  # Căn giữa theo chiều dọc
         
         self.vel_y = 0
         self.jumped = False
@@ -247,9 +251,15 @@ class Player():
             self.jumped = False
             self.in_air = False
 
-        # Vẽ nhân vật
-        screen.blit(self.image, (self.rect.x, self.rect.y))
-        pygame.draw.rect(screen, (255, 0, 0), self.rect, 2)
+        # Cập nhật vị trí sprite dựa trên hitbox
+        sprite_width = 47
+        sprite_height = 74
+        sprite_x = self.rect.x - (sprite_width - self.width) // 2
+        sprite_y = self.rect.y - (sprite_height - self.height) // 2
+        
+        # Vẽ nhân vật và hitbox
+        screen.blit(self.image, (sprite_x, sprite_y))
+        #pygame.draw.rect(screen, (255, 0, 0), self.rect, 2)
 
 
 class World():
@@ -385,7 +395,7 @@ class World():
                     self.enemies.append(enemy)
                     
                 elif tile == 6:  # Platform X (top)
-                    img = pygame.transform.scale(platform_x_img, (tile_size, tile_size // 1.5))
+                    img = pygame.transform.scale(platform_x_img, (tile_size, tile_size // 2.5))
                     img_rect = img.get_rect()
                     img_rect.x = col_count * tile_size
                     img_rect.y = row_count * tile_size
@@ -393,10 +403,10 @@ class World():
                     self.tile_list.append(tile)
                     
                 elif tile == 17:  # Platform X (bottom)
-                    img = pygame.transform.scale(platform_x_img, (tile_size, tile_size // 1.5))
+                    img = pygame.transform.scale(platform_x_img, (tile_size, tile_size // 2.5))
                     img_rect = img.get_rect()
                     img_rect.x = col_count * tile_size
-                    img_rect.y = row_count * tile_size + tile_size // 2 + 11
+                    img_rect.y = row_count * tile_size + tile_size // 2 + 5
                     tile = (img, img_rect, 'platform_x')  # Đánh dấu là platform di chuyển ngang
                     self.tile_list.append(tile)
                     
@@ -580,7 +590,7 @@ class World():
         
         for tile in self.tile_list:
                 screen.blit(tile[0], tile[1])
-                pygame.draw.rect(screen, (255, 0, 0), tile[1], 2)  # Vẽ hình chữ nhật xung quanh các tile để kiểm tra va chạm
+                #pygame.draw.rect(screen, (255, 0, 0), tile[1], 2)  # Vẽ hình chữ nhật xung quanh các tile để kiểm tra va chạm
         
         # Cập nhật và vẽ enemies
         for enemy in self.enemies:
@@ -625,12 +635,12 @@ class Enemy():
         # Vẽ enemy
         screen.blit(self.image, self.rect)
         # Vẽ hitbox cho debug
-        pygame.draw.rect(screen, (255, 0, 0), self.hitbox, 2)
+        #pygame.draw.rect(screen, (255, 0, 0), self.hitbox, 2)
 
 
 # Hàm để tải dữ liệu level từ file
-def load_level_data(level_number):
-    level_file = f'levels/level.data/level{level_number}_data'
+def load_level_data(self):
+    level_file = f'levels/level.data/level1_data'
     try:
         if path.exists(level_file):
             pickle_in = open(level_file, 'rb')
@@ -652,7 +662,7 @@ def load_level_data(level_number):
                 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                 [1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
             ]
     except Exception as e:
