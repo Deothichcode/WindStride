@@ -354,11 +354,17 @@ class World():
         # Các khung hình động cho hoa xanh 1
         blue_flower1_frames = []
         blue_flower1_frames.append(pygame.transform.scale(blue_flower1_img, (tile_size*3, tile_size*3)))  # Sử dụng blue_flower1_img đã tải
+        for i in range(0, 60):
+            img = pygame.image.load(f'assests/objects/Plant Animations/BlueFlower1/BlueFlower_{i:05d}.png')
+            blue_flower1_frames.append(pygame.transform.scale(img, (tile_size*3, tile_size*3)))
         self.animation_frames['blue_flower1'] = blue_flower1_frames
         
         # Các khung hình động cho hoa xanh 2
         blue_flower2_frames = []
         blue_flower2_frames.append(pygame.transform.scale(blue_flower2_img, (tile_size*3, tile_size*3)))  # Sử dụng blue_flower2_img đã tải
+        for i in range(0, 60):
+            img = pygame.image.load(f'assests/objects/Plant Animations/BlueFlower2/BluePlantClosed_{i:05d}.png')
+            blue_flower2_frames.append(pygame.transform.scale(img, (tile_size*3, tile_size*3)))
         self.animation_frames['blue_flower2'] = blue_flower2_frames
         
         row_count = 0  
@@ -549,10 +555,10 @@ class World():
                 plant_index = (pygame.time.get_ticks() // 50) % len(self.animation_frames['plant6'])
                 self.animated_tiles[i] = (self.animation_frames['plant6'][plant_index], rect, tile_type)
             elif tile_type == 'blue_flower1':
-                flower_index = (self.animation_index // 2) % len(self.animation_frames['blue_flower1'])  
+                flower_index = (pygame.time.get_ticks() // 50) % len(self.animation_frames['blue_flower1'])  
                 self.animated_tiles[i] = (self.animation_frames['blue_flower1'][flower_index], rect, tile_type)
             elif tile_type == 'blue_flower2':
-                flower_index = (self.animation_index // 2) % len(self.animation_frames['blue_flower2'])  
+                flower_index = (pygame.time.get_ticks() // 50) % len(self.animation_frames['blue_flower2'])  
                 self.animated_tiles[i] = (self.animation_frames['blue_flower2'][flower_index], rect, tile_type)
     
     def draw(self):
