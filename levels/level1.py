@@ -1,5 +1,5 @@
-import pygame
-from pygame.locals import *
+import pygame # type: ignore
+from pygame.locals import * # type: ignore
 import pickle
 from os import path
 import random
@@ -12,6 +12,13 @@ fps = 60
 screen_with = 1200
 screen_height = 700
 game_over = False
+
+# Tạo sprite groups
+blue_slime_group = pygame.sprite.Group()
+green_slime_group = pygame.sprite.Group()
+skeleton_group = pygame.sprite.Group()
+lava_group = pygame.sprite.Group()
+coin_group = pygame.sprite.Group()
 
 #define font
 font_score = pygame.font.SysFont('Bauhaus 93', 30)
@@ -127,7 +134,7 @@ class Player():
         # Load frames chạy
         for num in range(1,7):
             img_right = pygame.image.load(f'assests/character/male/run/run{num}.png')
-            img_right = pygame.transform.scale(img_right, (47 - 10, 74 - 10))
+            img_right = pygame.transform.scale(img_right, (37, 64))
             img_left = pygame.transform.flip(img_right, True, False)
             self.images_right.append(img_right)
             self.images_left.append(img_left)
@@ -135,7 +142,7 @@ class Player():
         # Load frames nhảy
         for num in range(1,8):
             img_jump_right = pygame.image.load(f'assests/character/male/jump/j{num}.png')
-            img_jump_right = pygame.transform.scale(img_jump_right, (47 - 10,74 - 10))
+            img_jump_right = pygame.transform.scale(img_jump_right, (37,64))
             img_jump_left = pygame.transform.flip(img_jump_right, True, False)
             self.images_jump_right.append(img_jump_right)
             self.images_jump_left.append(img_jump_left)
@@ -422,6 +429,7 @@ class World():
                 elif tile == 5:  # Blue slime
                     enemy = Enemy(col_count * tile_size, row_count * tile_size, 'blue_slime')
                     self.enemies.append(enemy)
+                    blue_slime_group.add(enemy)
                     
                 elif tile == 6:  # Platform X (top)
                     img = pygame.transform.scale(platform_x_img, (tile_size, tile_size // 2.5))
@@ -522,9 +530,11 @@ class World():
                 elif tile == 20:  # Green slime
                     enemy = Enemy(col_count * tile_size, row_count * tile_size, 'green_slime')
                     self.enemies.append(enemy)
+                    green_slime_group.add(enemy) 
                 elif tile == 21:  # Skeleton
                     enemy = Enemy(col_count * tile_size, row_count * tile_size, 'skeleton')
                     self.enemies.append(enemy)
+                    skeleton_group.add(enemy)
                 
                 # Tăng chỉ số cột sau khi xử lý một ô
                 col_count += 1
@@ -610,52 +620,172 @@ class World():
         
         for tile in self.tile_list:
                 screen.blit(tile[0], tile[1])
-                #pygame.draw.rect(screen, (255, 0, 0), tile[1], 2)  # Vẽ hình chữ nhật xung quanh các tile để kiểm tra va chạm
-        
-        # Cập nhật và vẽ enemies
+                #pygame.draw.rect(screen, (255, 0, 0), tile[1], 2)
+                
+        # Vẽ và cập nhật các enemy
         for enemy in self.enemies:
             enemy.update()
             enemy.draw(screen)
 
 
-class Enemy():
+class Enemy(pygame.sprite.Sprite):
     def __init__(self, x, y, enemy_type):
+        pygame.sprite.Sprite.__init__(self)
         self.enemy_type = enemy_type
+        self.animation_frames = []
+        self.frame_index = 0
+        self.animation_cooldown = 15
+        self.counter = 0
         
-        # Load hình ảnh dựa trên loại enemy
-        if enemy_type == 'blue_slime':
-            img = pygame.image.load('assests/objects/Creep/Blue_Slime/idle/1.png')
-            self.image = pygame.transform.scale(img, (int(tile_size*0.6), int(tile_size*0.6)))
-        elif enemy_type == 'green_slime':
-            img = pygame.image.load('assests/objects/Creep/Green_Slime/idle/1.png')
-            self.image = pygame.transform.scale(img, (int(tile_size*0.6), int(tile_size*0.6)))
-        elif enemy_type == 'skeleton':
-            img = pygame.image.load('assests/objects/Creep/Skeleton/idle/1.png')
-            self.image = pygame.transform.scale(img, (int(tile_size*0.8), int(tile_size*1.3)))
+        if enemy_type == 'blue_slime' or enemy_type == 'green_slime':
+            folder = 'Blue_Slime' if enemy_type == 'blue_slime' else 'Green_Slime'
+            for i in range(1, 12):  # Load tất cả frame nhảy
+                img = pygame.image.load(f'assests/objects/Creep/{folder}/jump/{i}.png')
+                img = pygame.transform.scale(img, (int(tile_size*0.6), int(tile_size*0.6)))
+                self.animation_frames.append(img)
             
+            self.image = self.animation_frames[0]
+            self.direction = 1  # 1 = phải, -1 = trái
+            self.vel_y = 0
+            self.jumping = False
+            self.jump_count = 0  # Đếm số lần nhảy ở mỗi bên
+            self.max_jumps = 3  # Số lần nhảy tối đa mỗi bên
+            self.jump_delay = 0  # Thời gian chờ giữa các lần nhảy
+            self.jump_cooldown = 40  # Số frame chờ trước khi nhảy tiếp
+            self.on_ground = True
+            self.move_speed = 0.6
+            self.first_jump = True  # Đánh dấu nhảy lần đầu không bị delay
+            
+        elif enemy_type == 'skeleton':
+            for i in range(1, 7):  # Load tất cả frame đi bộ
+                img = pygame.image.load(f'assests/objects/Creep/Skeleton/walk/{i}.png')
+                img = pygame.transform.scale(img, (int(tile_size*0.8), int(tile_size*1.3)))
+                self.animation_frames.append(img)
+            
+            self.image = self.animation_frames[0]
+            self.direction = 1
+            self.move_speed = 0.6
+        
         # Set up rect và hitbox
         self.rect = self.image.get_rect()
-        self.rect.centerx = x + tile_size // 2   # Căn giữa theo chiều ngang
-        self.rect.bottom = y + tile_size # Đặt ở dưới cùng của ô
+        self.rect.x = x
+        self.rect.y = y
         
         # Hitbox nhỏ hơn sprite
         self.hitbox = pygame.Rect(
-            self.rect.x,
-            self.rect.y,
-            self.rect.width,
-            self.rect.height
+            self.rect.x + 10,
+            self.rect.y + 5,
+            self.rect.width - 20,
+            self.rect.height - 10
         )
+
+    def check_collision(self, dx, dy):
+        for tile in world.tile_list:
+            # Va chạm theo chiều dọc
+            if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.rect.width, self.rect.height):
+                if self.vel_y < 0:  # Đang nhảy lên
+                    dy = tile[1].bottom - self.rect.top
+                    self.vel_y = 0
+                elif self.vel_y >= 0:  # Đang rơi xuống
+                    dy = tile[1].top - self.rect.bottom
+                    self.vel_y = 0
+                    if self.enemy_type in ['blue_slime', 'green_slime']:
+                        self.jumping = False
+                        self.on_ground = True
+            
+            # Va chạm theo chiều ngang
+            if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.rect.width, self.rect.height):
+                self.direction *= -1
+                return 0, dy
+                
+        return dx, dy
+
+    def check_edge(self):
+        ahead_x = self.rect.x + (self.rect.width if self.direction == 1 else -5)
+        test_rect = pygame.Rect(ahead_x, self.rect.bottom + 5, 5, 5)
         
-    def update(self):      
-        # Cập nhật hitbox theo vị trí mới
+        has_ground = False
+        for tile in world.tile_list:
+            if tile[1].colliderect(test_rect):
+                has_ground = True
+                break
+        
+        if not has_ground:
+            self.direction *= -1
+
+    def update(self):
+        dx = 0
+        dy = 0
+        
+        # Xử lý animation
+        self.counter += 1
+        if self.counter >= self.animation_cooldown:
+            self.counter = 0
+            self.frame_index = (self.frame_index + 1) % len(self.animation_frames)
+            if self.direction == 1:
+                self.image = self.animation_frames[self.frame_index]
+            else:
+                self.image = pygame.transform.flip(self.animation_frames[self.frame_index], True, False)
+
+        if self.enemy_type in ['blue_slime', 'green_slime']:
+            # Xử lý nhảy
+            if self.on_ground and not self.jumping:
+                if self.first_jump or self.jump_delay >= self.jump_cooldown:
+                    # Nhảy ngay lập tức nếu là lần đầu hoặc đã đủ thời gian chờ
+                    self.jumping = True
+                    self.on_ground = False
+                    self.vel_y = -5  # Lực nhảy
+                    self.jump_count += 1
+                    self.jump_delay = 0
+                    self.first_jump = False  # Đánh dấu đã nhảy lần đầu
+                else:
+                    self.jump_delay += 1  # Đếm thời gian chờ nếu không nhảy
+                
+            # Áp dụng trọng lực
+            if not self.on_ground:
+                self.vel_y += 0.4
+                if self.vel_y > 8:
+                    self.vel_y = 8
+            
+            # Chuyển động
+            dy = self.vel_y
+            dx = self.move_speed * self.direction
+            
+            # Kiểm tra va chạm
+            dx, dy = self.check_collision(dx, dy)
+            
+            # Cập nhật vị trí
+            self.rect.x += dx
+            self.rect.y += dy
+            
+            # Kiểm tra đổi hướng sau 3 lần nhảy
+            if self.on_ground and self.jump_count >= self.max_jumps:
+                self.direction *= -1
+                self.jump_count = 0
+            
+        elif self.enemy_type == 'skeleton':
+            dx = self.move_speed * self.direction
+            
+            # Áp dụng trọng lực
+            self.vel_y = 5  # Tốc độ rơi cố định
+            dy = self.vel_y
+            
+            # Kiểm tra va chạm và rìa
+            dx, dy = self.check_collision(dx, dy)
+            self.check_edge()
+            
+            # Cập nhật vị trí
+            self.rect.x += dx
+            self.rect.y += dy
+        
+        # Cập nhật hitbox
         self.hitbox.x = self.rect.x + 10
-        self.hitbox.y = self.rect.y + 1
+        self.hitbox.y = self.rect.y + 5
         
     def draw(self, screen):
-        # Vẽ enemy
         screen.blit(self.image, self.rect)
-        # Vẽ hitbox cho debug
         #pygame.draw.rect(screen, (255, 0, 0), self.hitbox, 2)
+
 
 class Lava(pygame.sprite.Sprite):
     def __init__(self,x,y):
@@ -718,6 +848,11 @@ def load_level_data(self):
                 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                 [1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
             ]
     except Exception as e:
@@ -731,6 +866,9 @@ player = Player(35, screen_height - 210) #Vị trí khởi đầu của nhân v�
 score = 0
 
 #Tao cac vat the
+blue_slime_group = pygame.sprite.Group()
+green_slime_group = pygame.sprite.Group()
+skeleton_group = pygame.sprite.Group()
 coin_group = pygame.sprite.Group()
 lava_group = pygame.sprite.Group()
 
@@ -761,7 +899,16 @@ def run_level(screen, screen_width, screen_height):
         clock.tick(fps)
         screen.blit(background_img,(0,0))
         world.draw()
-        #draw_grid()
+        draw_grid()
+
+        # Cập nhật và vẽ các enemy
+        blue_slime_group.update()
+        green_slime_group.update()
+        skeleton_group.update()
+
+        blue_slime_group.draw(screen)
+        green_slime_group.draw(screen)
+        skeleton_group.draw(screen)
 
         for sprite in coin_group:
             if pygame.sprite.collide_rect(player, sprite) and not sprite.is_icon:
@@ -770,8 +917,10 @@ def run_level(screen, screen_width, screen_height):
         draw_text('X ' + str(score) + '/3', font_score, white, tile_size - 10, 10)
 
         lava_group.draw(screen)
+
         coin_group.update()
         coin_group.draw(screen)
+
         game_over = player.update(game_over)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
