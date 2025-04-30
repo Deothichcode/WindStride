@@ -12,6 +12,13 @@ fps = 60
 screen_with = 1200
 screen_height = 700
 
+
+#define font
+font_score = pygame.font.SysFont('Bauhaus 93', 30)
+
+#define col
+white = (255,255,255)
+
 screen = pygame.display.set_mode((screen_with, screen_height))
 pygame.display.set_caption('WindStride')
 
@@ -25,6 +32,11 @@ except pygame.error:
 #load ảnh
 background_img = pygame.image.load('assests/background/PNG/game_background_2/game_background_2.png')
 background_img = pygame.transform.scale(background_img, (screen_with, screen_height))
+
+def draw_text(text, font, text_col, x, y):
+    img = font.render(text, True, text_col)
+    screen.blit(img, (x,y))
+
 
 tile_size = 60 #mỗi ô grid có pixel là 60
 def draw_grid():
@@ -76,11 +88,6 @@ class AnimatedObject:
                 img = pygame.image.load(f'assests/objects/Item/flag/{i}.png')
                 img = pygame.transform.scale(img, scale)
                 self.images.append(img)
-        elif object_type == 'slime':
-            # Load only a single frame for slime, no animation
-            img = pygame.image.load(f'assests/objects/Creep/Blue_Slime/idle/1.png')
-            img = pygame.transform.scale(img, scale)
-            self.images.append(img)
         elif object_type == 'plant':
             for i in range(0, 90): 
                 img = pygame.image.load(f'assests/objects/Plant Animations/Plant 1/Plant1_{i:05d}.png')
@@ -278,7 +285,7 @@ class World():
         blue_slime_img = pygame.image.load('assests/objects/Creep/Blue_Slime/idle/1.png') # Blue slime (5)
         platform_x_img = pygame.image.load('assests/tileset/Forest Tileset/1 Tiles/Tile_08.png') # Platforms (6, 17)
         lava_img = pygame.image.load('assests/tileset/Forest Tileset/1 Tiles/Tile_20.png') # Lava (8)
-        coin_img = pygame.image.load('assests/objects/Item/coin/1.png') # Coin (9)
+        # coin_img = pygame.image.load('assests/objects/Item/coin/1.png') # Coin (9)
         exit_img = pygame.image.load('assests/objects/Item/flag/1.png') # Exit (10)
         plant2_img = pygame.image.load('assests/objects/Plant Animations/Plant 2/Plant2_00000.png') # Plant2 (11)
         plant3_img = pygame.image.load('assests/objects/Plant Animations/Plant 3/Plant3_00000.png') # Plant3 (12)
@@ -291,13 +298,6 @@ class World():
         green_slime_img = pygame.image.load('assests/objects/Creep/Green_Slime/idle/1.png') # Green slime
         skeleton_img = pygame.image.load('assests/objects/Creep/Skeleton/idle/1.png') # Skeleton
         # tải các khung hình động cho các đối tượng khác nhau
-        # Các khung hình động cho đồng xu
-        coin_frames = []
-        coin_frames.append(pygame.transform.scale(coin_img, (int(tile_size * 0.5), int(tile_size * 0.5))))  # Sử dụng coin_img đã tải làm frame đầu tiên
-        for i in range(2, 5):
-            img = pygame.image.load(f'assests/objects/Item/coin/{i}.png')
-            coin_frames.append(pygame.transform.scale(img, (int(tile_size * 0.5), int(tile_size * 0.5))))
-        self.animation_frames['coin'] = coin_frames
         
         # Các khung hình động cho cờ
         flag_frames = []
@@ -354,11 +354,17 @@ class World():
         # Các khung hình động cho hoa xanh 1
         blue_flower1_frames = []
         blue_flower1_frames.append(pygame.transform.scale(blue_flower1_img, (tile_size*3, tile_size*3)))  # Sử dụng blue_flower1_img đã tải
+        for i in range(0, 60):
+            img = pygame.image.load(f'assests/objects/Plant Animations/BlueFlower1/BlueFlower_{i:05d}.png')
+            blue_flower1_frames.append(pygame.transform.scale(img, (tile_size*3, tile_size*3)))
         self.animation_frames['blue_flower1'] = blue_flower1_frames
         
         # Các khung hình động cho hoa xanh 2
         blue_flower2_frames = []
         blue_flower2_frames.append(pygame.transform.scale(blue_flower2_img, (tile_size*3, tile_size*3)))  # Sử dụng blue_flower2_img đã tải
+        for i in range(0, 60):
+            img = pygame.image.load(f'assests/objects/Plant Animations/BlueFlower2/BluePlantClosed_{i:05d}.png')
+            blue_flower2_frames.append(pygame.transform.scale(img, (tile_size*3, tile_size*3)))
         self.animation_frames['blue_flower2'] = blue_flower2_frames
         
         row_count = 0  
@@ -419,13 +425,8 @@ class World():
                     self.tile_list.append(tile)
                     
                 elif tile == 9:  # Coin - Có hoạt ảnh
-                    img = self.animation_frames['coin'][0]  # Bắt đầu với frame đầu tiên
-                    img_rect = img.get_rect()
-                    # Căn giữa đồng xu trong ô lưới
-                    img_rect.centerx = col_count * tile_size + tile_size // 2
-                    img_rect.centery = row_count * tile_size + tile_size // 2
-                    tile = (img, img_rect, 'coin')  # Đánh dấu cho hoạt ảnh
-                    self.animated_tiles.append(tile)
+                    coin = Coin(col_count * tile_size + (tile_size // 2), row_count * tile_size + (tile_size // 2))
+                    coin_group.add(coin)
                     
                 elif tile == 10:  # Exit (Flag) - Có hoạt ảnh
                     img = self.animation_frames['flag'][0]  # Bắt đầu với frame đầu tiên
@@ -524,9 +525,9 @@ class World():
         for i, tile in enumerate(self.animated_tiles):
             img, rect, tile_type = tile
             
-            if tile_type == 'coin':
-                self.animated_tiles[i] = (self.animation_frames['coin'][self.animation_index % len(self.animation_frames['coin'])], rect, tile_type)
-            elif tile_type == 'flag':
+            # if tile_type == 'coin':
+            #     self.animated_tiles[i] = (self.animation_frames['coin'][self.animation_index % len(self.animation_frames['coin'])], rect, tile_type)
+            if tile_type == 'flag':
                 self.animated_tiles[i] = (self.animation_frames['flag'][self.animation_index % len(self.animation_frames['flag'])], rect, tile_type)
             elif tile_type == 'rune':
                 self.animated_tiles[i] = (self.animation_frames['rune'][self.animation_index % len(self.animation_frames['rune'])], rect, tile_type)
@@ -549,10 +550,10 @@ class World():
                 plant_index = (pygame.time.get_ticks() // 50) % len(self.animation_frames['plant6'])
                 self.animated_tiles[i] = (self.animation_frames['plant6'][plant_index], rect, tile_type)
             elif tile_type == 'blue_flower1':
-                flower_index = (self.animation_index // 2) % len(self.animation_frames['blue_flower1'])  
+                flower_index = (pygame.time.get_ticks() // 50) % len(self.animation_frames['blue_flower1'])  
                 self.animated_tiles[i] = (self.animation_frames['blue_flower1'][flower_index], rect, tile_type)
             elif tile_type == 'blue_flower2':
-                flower_index = (self.animation_index // 2) % len(self.animation_frames['blue_flower2'])  
+                flower_index = (pygame.time.get_ticks() // 50) % len(self.animation_frames['blue_flower2'])  
                 self.animated_tiles[i] = (self.animation_frames['blue_flower2'][flower_index], rect, tile_type)
     
     def draw(self):
@@ -638,6 +639,33 @@ class Enemy():
         #pygame.draw.rect(screen, (255, 0, 0), self.hitbox, 2)
 
 
+class Coin(pygame.sprite.Sprite):
+    def __init__(self, x, y, is_icon=False):
+        pygame.sprite.Sprite.__init__(self)
+        img = pygame.image.load('assests/objects/Item/coin/1.png')
+        self.image = pygame.transform.scale(img, (tile_size // 2, tile_size // 2))
+        self.rect = self.image.get_rect()
+        self.rect.center = (x,y)
+        self.is_icon = is_icon  # Đánh dấu nếu là icon
+
+        self.coin_frames = []
+        self.coin_frames.append(pygame.transform.scale(img, (int(tile_size * 0.5), int(tile_size * 0.5))))
+        for i in range(2, 5):
+            img = pygame.image.load(f'assests/objects/Item/coin/{i}.png')
+            self.coin_frames.append(pygame.transform.scale(img, (int(tile_size * 0.5), int(tile_size * 0.5))))
+        self.animation_count = 0
+        self.animation_index = 0
+
+    def update(self):
+        self.animation_count += 1
+        if self.animation_count >= 10:
+            self.animation_count = 0
+            self.animation_index = (self.animation_index + 1) % len(self.coin_frames)
+            img = self.coin_frames[self.animation_index]
+            self.image = pygame.transform.scale(img, (tile_size // 2, tile_size // 2))
+        
+
+
 # Hàm để tải dữ liệu level từ file
 def load_level_data(self):
     level_file = f'levels/level.data/level2_data'
@@ -671,12 +699,24 @@ def load_level_data(self):
 
 #Lop nhan vat
 player = Player(35, screen_height - 210) #Vị trí khởi đầu của nhân vật
-# Tải dữ liệu level từ file level1_data
+
+#Define
+score = 0
+
+#Tao cac vat the
+coin_group = pygame.sprite.Group()
+
+# Tạo coin icon cho điểm số (đánh dấu là icon)
+score_coin = Coin(tile_size - 30, 25, True)  # Đặt is_icon=True
+coin_group.add(score_coin)
+
+# Tải dữ liệu level từ file
 world_data = load_level_data(1)
 world = World(world_data)
 
 
 def run_level(screen, screen_width, screen_height):
+    global score
     # Khởi tạo âm thanh
     try:
         game_music = pygame.mixer.Sound('assests/sfx/menusfx/NinjaSchool.mp3')
@@ -693,6 +733,15 @@ def run_level(screen, screen_width, screen_height):
         screen.blit(background_img,(0,0))
         world.draw()
         #draw_grid()
+
+        for sprite in coin_group:
+            if pygame.sprite.collide_rect(player, sprite) and not sprite.is_icon:
+                sprite.kill()
+                score += 1
+        draw_text('X ' + str(score) + '/3', font_score, white, tile_size - 10, 10)
+
+        coin_group.update()
+        coin_group.draw(screen)
         player.update()
         
         for event in pygame.event.get():

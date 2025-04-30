@@ -88,11 +88,6 @@ class AnimatedObject:
                 img = pygame.image.load(f'assests/objects/Item/flag/{i}.png')
                 img = pygame.transform.scale(img, scale)
                 self.images.append(img)
-        elif object_type == 'slime':
-            # Load only a single frame for slime, no animation
-            img = pygame.image.load(f'assests/objects/Creep/Blue_Slime/idle/1.png')
-            img = pygame.transform.scale(img, scale)
-            self.images.append(img)
         elif object_type == 'plant':
             for i in range(0, 90): 
                 img = pygame.image.load(f'assests/objects/Plant Animations/Plant 1/Plant1_{i:05d}.png')
@@ -303,13 +298,6 @@ class World():
         green_slime_img = pygame.image.load('assests/objects/Creep/Green_Slime/idle/1.png') # Green slime
         skeleton_img = pygame.image.load('assests/objects/Creep/Skeleton/idle/1.png') # Skeleton
         # tải các khung hình động cho các đối tượng khác nhau
-        # Các khung hình động cho đồng xu
-        # coin_frames = []
-        # coin_frames.append(pygame.transform.scale(coin_img, (int(tile_size * 0.5), int(tile_size * 0.5))))  # Sử dụng coin_img đã tải làm frame đầu tiên
-        # for i in range(2, 5):
-        #     img = pygame.image.load(f'assests/objects/Item/coin/{i}.png')
-        #     coin_frames.append(pygame.transform.scale(img, (int(tile_size * 0.5), int(tile_size * 0.5))))
-        # self.animation_frames['coin'] = coin_frames
         
         # Các khung hình động cho cờ
         flag_frames = []
@@ -652,15 +640,16 @@ class Enemy():
 
 
 class Coin(pygame.sprite.Sprite):
-    def __init__(self, x, y):
+    def __init__(self, x, y, is_icon=False):
         pygame.sprite.Sprite.__init__(self)
         img = pygame.image.load('assests/objects/Item/coin/1.png')
         self.image = pygame.transform.scale(img, (tile_size // 2, tile_size // 2))
         self.rect = self.image.get_rect()
         self.rect.center = (x,y)
+        self.is_icon = is_icon  # Đánh dấu nếu là icon
 
         self.coin_frames = []
-        self.coin_frames.append(pygame.transform.scale(img, (int(tile_size * 0.5), int(tile_size * 0.5))))  # Sử dụng coin_img đã tải làm frame đầu tiên
+        self.coin_frames.append(pygame.transform.scale(img, (int(tile_size * 0.5), int(tile_size * 0.5))))
         for i in range(2, 5):
             img = pygame.image.load(f'assests/objects/Item/coin/{i}.png')
             self.coin_frames.append(pygame.transform.scale(img, (int(tile_size * 0.5), int(tile_size * 0.5))))
@@ -669,7 +658,6 @@ class Coin(pygame.sprite.Sprite):
 
     def update(self):
         self.animation_count += 1
-
         if self.animation_count >= 10:
             self.animation_count = 0
             self.animation_index = (self.animation_index + 1) % len(self.coin_frames)
@@ -717,10 +705,12 @@ score = 0
 
 #Tao cac vat the
 coin_group = pygame.sprite.Group()
-score_coin = Coin(tile_size - 30, 25)
+
+# Tạo coin icon cho điểm số (đánh dấu là icon)
+score_coin = Coin(tile_size - 30, 25, True)  # Đặt is_icon=True
 coin_group.add(score_coin)
 
-# Tải dữ liệu level từ file level1_data
+# Tải dữ liệu level từ file
 world_data = load_level_data(1)
 world = World(world_data)
 
@@ -744,9 +734,10 @@ def run_level(screen, screen_width, screen_height):
         world.draw()
         #draw_grid()
 
-        #Check coin collected
-        if(pygame.sprite.spritecollide(player, coin_group, True)):
-            score += 1
+        for sprite in coin_group:
+            if pygame.sprite.collide_rect(player, sprite) and not sprite.is_icon:
+                sprite.kill()
+                score += 1
         draw_text('X ' + str(score) + '/3', font_score, white, tile_size - 10, 10)
 
         coin_group.update()
