@@ -120,61 +120,28 @@ class AnimatedObject:
     
     def draw(self):
         screen.blit(self.image, self.rect)
-
-
+class Button():
+    def __init__(self, image, x, y, scale=1.0):
+        self.image = pygame.image.load(image).convert_alpha()
+        width = int(self.image.get_width() * scale)
+        height = int(self.image.get_height() * scale)
+        self.image = pygame.transform.scale(self.image, (width, height))
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
+    def draw(self):
+        action = False
+        pos = pygame.mouse.get_pos()
+        if self.rect.collidepoint(pos):
+            if pygame.mouse.get_pressed()[0] == 1 and self.clicked == False:
+                action = True
+                self.clicked = True
+        if pygame.mouse.get_pressed()[0] == 0:
+            self.clicked = False
+        screen.blit(self.image, self.rect)
+        return action
 class Player():
     def __init__(self, x, y):
-        self.images_right = [] #list frame di sang phai
-        self.images_left = [] #list frame di sang trai
-        self.images_jump_right = [] #list frame nhảy sang phải
-        self.images_jump_left = [] #list frame nhảy sang trái
-        self.index = 0 #thu tu frame
-        self.counter = 0 #thoi gian lam moi frame
-        
-        # Load frames chạy
-        for num in range(1,7):
-            img_right = pygame.image.load(f'assests/character/male/run/run{num}.png')
-            img_right = pygame.transform.scale(img_right, (37, 64))
-            img_left = pygame.transform.flip(img_right, True, False)
-            self.images_right.append(img_right)
-            self.images_left.append(img_left)
-            
-        # Load frames nhảy
-        for num in range(1,8):
-            img_jump_right = pygame.image.load(f'assests/character/male/jump/j{num}.png')
-            img_jump_right = pygame.transform.scale(img_jump_right, (37,64))
-            img_jump_left = pygame.transform.flip(img_jump_right, True, False)
-            self.images_jump_right.append(img_jump_right)
-            self.images_jump_left.append(img_jump_left)
-
-        # Load frame đứng yên
-        self.idle_image_right = pygame.image.load('assests/character/male/idle/Idle.png')
-        self.idle_image_right = pygame.transform.scale(self.idle_image_right, (37, 64))
-        self.idle_image_left = pygame.transform.flip(self.idle_image_right, True, False)
-        self.image = self.idle_image_right
-        
-        # Nhân vật game over 
-        self.dead_image = [pygame.image.load('assests/character/male/dead/1.png'),
-                           pygame.image.load('assests/character/male/dead/2.png'),
-                           pygame.image.load('assests/character/male/dead/3.png'),
-                           pygame.image.load('assests/character/male/dead/4.png')]
-        self.death_index = 0
-        self.death_counter = 0
-        # Tạo hitbox nhỏ hơn sprite
-        self.width = 22  
-        self.height = 55 
-        self.rect = pygame.Rect(0, 0, self.width, self.height)
-        
-
-        sprite_width = 37
-        sprite_height = 64
-        self.rect.x = x + (sprite_width - self.width) // 2  # Căn giữa theo chiều ngang
-        self.rect.y = y + (sprite_height - self.height) // 2  # Căn giữa theo chiều dọc
-        
-        self.vel_y = 0
-        self.jumped = False
-        self.direction = 0
-        self.in_air = False  # Biến kiểm tra nhân vật có đang trong không trung
+        self.reset(x,y)
 
     def update(self,game_over):
         dx = 0
@@ -259,6 +226,10 @@ class Player():
                 #Xử lý va chạm với Lava 
                 if pygame.sprite.spritecollide(self,lava_group,False):
                     game_over = True
+                #Xử lý va chạm với Enemy
+                if pygame.sprite.spritecollide(self,blue_slime_group,False) or pygame.sprite.spritecollide(self,green_slime_group,False) or pygame.sprite.spritecollide(self,skeleton_group,False) :
+                    game_over = True
+                
             # Cập nhật vị trí
             self.rect.x += dx
             self.rect.y += dy
@@ -298,6 +269,58 @@ class Player():
         #pygame.draw.rect(screen, (255, 0, 0), self.rect, 2)
         return game_over
 
+    def reset(self, x ,y):
+        self.images_right = [] #list frame di sang phai
+        self.images_left = [] #list frame di sang trai
+        self.images_jump_right = [] #list frame nhảy sang phải
+        self.images_jump_left = [] #list frame nhảy sang trái
+        self.index = 0 #thu tu frame
+        self.counter = 0 #thoi gian lam moi frame
+        
+        # Load frames chạy
+        for num in range(1,7):
+            img_right = pygame.image.load(f'assests/character/male/run/run{num}.png')
+            img_right = pygame.transform.scale(img_right, (37, 64))
+            img_left = pygame.transform.flip(img_right, True, False)
+            self.images_right.append(img_right)
+            self.images_left.append(img_left)
+            
+        # Load frames nhảy
+        for num in range(1,8):
+            img_jump_right = pygame.image.load(f'assests/character/male/jump/j{num}.png')
+            img_jump_right = pygame.transform.scale(img_jump_right, (37,64))
+            img_jump_left = pygame.transform.flip(img_jump_right, True, False)
+            self.images_jump_right.append(img_jump_right)
+            self.images_jump_left.append(img_jump_left)
+
+        # Load frame đứng yên
+        self.idle_image_right = pygame.image.load('assests/character/male/idle/Idle.png')
+        self.idle_image_right = pygame.transform.scale(self.idle_image_right, (37, 64))
+        self.idle_image_left = pygame.transform.flip(self.idle_image_right, True, False)
+        self.image = self.idle_image_right
+        
+        # Nhân vật game over 
+        self.dead_image = [pygame.image.load('assests/character/male/dead/1.png'),
+                           pygame.image.load('assests/character/male/dead/2.png'),
+                           pygame.image.load('assests/character/male/dead/3.png'),
+                           pygame.image.load('assests/character/male/dead/4.png')]
+        self.death_index = 0
+        self.death_counter = 0
+        # Tạo hitbox nhỏ hơn sprite
+        self.width = 22  
+        self.height = 55 
+        self.rect = pygame.Rect(0, 0, self.width, self.height)
+        
+
+        sprite_width = 37
+        sprite_height = 64
+        self.rect.x = x + (sprite_width - self.width) // 2  # Căn giữa theo chiều ngang
+        self.rect.y = y + (sprite_height - self.height) // 2  # Căn giữa theo chiều dọc
+        
+        self.vel_y = 0
+        self.jumped = False
+        self.direction = 0
+        self.in_air = False  #Biến kiểm tra nhân vật có đang trong không trung
 
 class World():
     def __init__(self,data):
@@ -795,7 +818,7 @@ class Lava(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y= y
-        
+                        
 class Coin(pygame.sprite.Sprite):
     def __init__(self, x, y, is_icon=False):
         pygame.sprite.Sprite.__init__(self)
@@ -892,7 +915,7 @@ def run_level(screen, screen_width, screen_height):
     except pygame.error as e:
         print(f"Không thể tải nhạc game: {e}")
         game_music = None
-
+    restart_button = Button( 'assests/gui/PNG/btn/restart.png', screen_width *0.5 , screen_height *0.5, 0.5)
     #vòng lặp xử lý sự kiện game
     run = True
     while run:
@@ -922,6 +945,11 @@ def run_level(screen, screen_width, screen_height):
         coin_group.draw(screen)
 
         game_over = player.update(game_over)
+        #Restart khi game over
+        if game_over == True:
+            if restart_button.draw():
+                player.reset(35, screen_height - 210) #Vị trí khởi đầu của nhân vật
+                game_over = False
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 if game_music:

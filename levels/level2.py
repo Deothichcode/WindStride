@@ -259,6 +259,9 @@ class Player():
                 #Xử lý va chạm với Lava 
                 if pygame.sprite.spritecollide(self,lava_group,False):
                     game_over = True
+                #Xử lý va chạm với Enemy
+                if pygame.sprite.spritecollide(self,blue_slime_group,False) or pygame.sprite.spritecollide(self,green_slime_group,False) or pygame.sprite.spritecollide(self,skeleton_group,False) :
+                    game_over = True
             # Cập nhật vị trí
             self.rect.x += dx
             self.rect.y += dy
