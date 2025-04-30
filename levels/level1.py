@@ -11,7 +11,7 @@ fps = 60
 
 screen_with = 1200
 screen_height = 700
-
+game_over = False
 
 #define font
 font_score = pygame.font.SysFont('Bauhaus 93', 30)
@@ -146,6 +146,13 @@ class Player():
         self.idle_image_left = pygame.transform.flip(self.idle_image_right, True, False)
         self.image = self.idle_image_right
         
+        # Nhân vật game over 
+        self.dead_image = [pygame.image.load('assests/character/male/dead/1.png'),
+                           pygame.image.load('assests/character/male/dead/2.png'),
+                           pygame.image.load('assests/character/male/dead/3.png'),
+                           pygame.image.load('assests/character/male/dead/4.png')]
+        self.death_index = 0
+        self.death_counter = 0
         # Tạo hitbox nhỏ hơn sprite
         self.width = 22  
         self.height = 55 
@@ -162,90 +169,105 @@ class Player():
         self.direction = 0
         self.in_air = False  # Biến kiểm tra nhân vật có đang trong không trung
 
-    def update(self):
+    def update(self,game_over):
         dx = 0
         dy = 0
         walk_cooldown = 5
         jump_cooldown = 6
-
-        # Lấy trạng thái phím
-        key = pygame.key.get_pressed()
-        
-        # Xử lý nhảy
-        if key[pygame.K_UP] and not self.jumped and not self.in_air:
-            self.vel_y = -15
-            self.jumped = True
-            self.in_air = True
-            self.counter = 0
-            self.index = 0
+        if game_over == False: 
+            # Lấy trạng thái phím
+            key = pygame.key.get_pressed()
             
-        # Xử lý di chuyển trái/phải
-        if key[pygame.K_LEFT]:
-            dx -= 4
-            self.counter += 1
-            self.direction = -1
-        if key[pygame.K_RIGHT]:
-            dx += 4
-            self.counter += 1
-            self.direction = 1
-            
-        # Xử lý animation
-        if not (key[pygame.K_LEFT] or key[pygame.K_RIGHT]) and not self.in_air:
-            self.counter = 0
-            self.index = 0
-            if self.direction == 1:
-                self.image = self.idle_image_right
-            elif self.direction == -1:
-                self.image = self.idle_image_left
-            else:
-                self.image = self.idle_image_right
+            # Xử lý nhảy
+            if key[pygame.K_UP] and not self.jumped and not self.in_air:
+                self.vel_y = -15
+                self.jumped = True
+                self.in_air = True
+                self.counter = 0
+                self.index = 0
+                
+            # Xử lý di chuyển trái/phải
+            if key[pygame.K_LEFT]:
+                dx -= 4
+                self.counter += 1
+                self.direction = -1
+            if key[pygame.K_RIGHT]:
+                dx += 4
+                self.counter += 1
+                self.direction = 1
+                
+            # Xử lý animation
+            if not (key[pygame.K_LEFT] or key[pygame.K_RIGHT]) and not self.in_air:
+                self.counter = 0
+                self.index = 0
+                if self.direction == 1:
+                    self.image = self.idle_image_right
+                elif self.direction == -1:
+                    self.image = self.idle_image_left
+                else:
+                    self.image = self.idle_image_right
 
-        # Animation nhảy và chạy
-        if self.in_air:
-            if self.counter > jump_cooldown:
+            # Animation nhảy và chạy
+            if self.in_air:
+                if self.counter > jump_cooldown:
+                    self.counter = 0
+                    self.index += 1
+                    if self.index >= len(self.images_jump_right):
+                        self.index = len(self.images_jump_right) - 1
+                    if self.direction >= 0:
+                        self.image = self.images_jump_right[self.index]
+                    else:
+                        self.image = self.images_jump_left[self.index]
+            elif self.counter > walk_cooldown:
                 self.counter = 0
                 self.index += 1
-                if self.index >= len(self.images_jump_right):
-                    self.index = len(self.images_jump_right) - 1
-                if self.direction >= 0:
-                    self.image = self.images_jump_right[self.index]
-                else:
-                    self.image = self.images_jump_left[self.index]
-        elif self.counter > walk_cooldown:
-            self.counter = 0
-            self.index += 1
-            if self.index >= len(self.images_right):
-                self.index = 0
-            if self.direction == 1:
-                self.image = self.images_right[self.index]
-            if self.direction == -1:
-                self.image = self.images_left[self.index]
+                if self.index >= len(self.images_right):
+                    self.index = 0
+                if self.direction == 1:
+                    self.image = self.images_right[self.index]
+                if self.direction == -1:
+                    self.image = self.images_left[self.index]
 
-        # Áp dụng trọng lực
-        self.vel_y += 1
-        if self.vel_y > 10:
-            self.vel_y = 10
-        dy += self.vel_y
+            # Áp dụng trọng lực
+            self.vel_y += 1
+            if self.vel_y > 10:
+                self.vel_y = 10
+            dy += self.vel_y
 
-        # Xử lý va chạm với địa hình
-        for tile in world.tile_list:
-            # Va chạm theo chiều dọc
-            if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
-                if self.vel_y < 0:  # Đang nhảy lên
-                    dy = tile[1].bottom - self.rect.top
-                    self.vel_y = 0
-                elif self.vel_y >= 0:  # Đang rơi xuống
-                    dy = tile[1].top - self.rect.bottom
-                    self.vel_y = 0
-                    self.jumped = False
-                    self.in_air = False
-            # Va chạm theo chiều ngang
-            if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
-                dx = 0
-
-        # Cập nhật vị trí
-        self.rect.x += dx
-        self.rect.y += dy
+            # Xử lý va chạm với địa hình
+            for tile in world.tile_list:
+                # Va chạm theo chiều dọc
+                if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
+                    if self.vel_y < 0:  # Đang nhảy lên
+                        dy = tile[1].bottom - self.rect.top
+                        self.vel_y = 0
+                    elif self.vel_y >= 0:  # Đang rơi xuống
+                        dy = tile[1].top - self.rect.bottom
+                        self.vel_y = 0
+                        self.jumped = False
+                        self.in_air = False
+                # Va chạm theo chiều ngang
+                if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
+                    dx = 0
+                #Xử lý va chạm với Lava 
+                if pygame.sprite.spritecollide(self,lava_group,False):
+                    game_over = True
+            # Cập nhật vị trí
+            self.rect.x += dx
+            self.rect.y += dy
+        else:
+        # Chạy animation chết
+            if self.death_index < len(self.dead_image):
+                self.death_counter += 1
+                if self.death_counter >= 10:  # số frame chờ giữa 2 hình
+                    self.image = self.dead_image[self.death_index]
+                    self.death_index += 1
+                    self.death_counter = 0
+           
+            else:
+            # Animation đã xong giữ frame cuối
+                self.image = self.dead_image[-1]
+                self.rect.y -= 0.5  
 
         # Giới hạn màn hình
         if self.rect.left < 0:
@@ -267,6 +289,7 @@ class Player():
         # Vẽ nhân vật và hitbox
         screen.blit(self.image, (sprite_x, sprite_y))
         #pygame.draw.rect(screen, (255, 0, 0), self.rect, 2)
+        return game_over
 
 
 class World():
@@ -417,12 +440,8 @@ class World():
                     self.tile_list.append(tile)
                     
                 elif tile == 8:  # Lava
-                    img = pygame.transform.scale(lava_img, (tile_size, tile_size // 2))
-                    img_rect = img.get_rect()
-                    img_rect.x = col_count * tile_size
-                    img_rect.y = row_count * tile_size + (tile_size // 2)
-                    tile = (img, img_rect, 'lava')  # Đánh dấu là dung nham
-                    self.tile_list.append(tile)
+                    lava = Lava( col_count * tile_size, row_count * tile_size + (tile_size // 2))
+                    lava_group.add(lava)
                     
                 elif tile == 9:  # Coin - Có hoạt ảnh
                     coin = Coin(col_count * tile_size + (tile_size // 2), row_count * tile_size + (tile_size // 2))
@@ -638,7 +657,15 @@ class Enemy():
         # Vẽ hitbox cho debug
         #pygame.draw.rect(screen, (255, 0, 0), self.hitbox, 2)
 
-
+class Lava(pygame.sprite.Sprite):
+    def __init__(self,x,y):
+        pygame.sprite.Sprite.__init__(self)
+        img = pygame.image.load('assests/tileset/Forest Tileset/1 Tiles/Tile_20.png')
+        self.image = pygame.transform.scale(img,(tile_size,tile_size//2))
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y= y
+        
 class Coin(pygame.sprite.Sprite):
     def __init__(self, x, y, is_icon=False):
         pygame.sprite.Sprite.__init__(self)
@@ -705,6 +732,7 @@ score = 0
 
 #Tao cac vat the
 coin_group = pygame.sprite.Group()
+lava_group = pygame.sprite.Group()
 
 # Tạo coin icon cho điểm số (đánh dấu là icon)
 score_coin = Coin(tile_size - 30, 25, True)  # Đặt is_icon=True
@@ -717,6 +745,7 @@ world = World(world_data)
 
 def run_level(screen, screen_width, screen_height):
     global score
+    global game_over
     # Khởi tạo âm thanh
     try:
         game_music = pygame.mixer.Sound('assests/sfx/menusfx/NinjaSchool.mp3')
@@ -740,10 +769,10 @@ def run_level(screen, screen_width, screen_height):
                 score += 1
         draw_text('X ' + str(score) + '/3', font_score, white, tile_size - 10, 10)
 
+        lava_group.draw(screen)
         coin_group.update()
         coin_group.draw(screen)
-        player.update()
-        
+        game_over = player.update(game_over)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 if game_music:
