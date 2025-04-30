@@ -1,4 +1,4 @@
-import pygame
+import pygame # type: ignore
 import pickle
 from os import path, makedirs
 

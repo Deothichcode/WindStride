@@ -1,6 +1,6 @@
 import sys #Nhập mô-đun sys, cho phép bạn tương tác với các tham số và chức năng của hệ thống.
-import pygame
-from pygame.locals import*
+import pygame # type: ignore
+from pygame.locals import* # type: ignore
 import random
 import math
 import webbrowser  # Thêm thư viện webbrowser để mở trang web
