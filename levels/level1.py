@@ -957,6 +957,12 @@ def run_level(screen, screen_width, screen_height):
                 blue_slime_group.empty()
                 green_slime_group.empty()
                 skeleton_group.empty()
+                coin_group.empty()
+                rune_group.empty()
+                score_coin = Coin(tile_size - 30, 25, True)  # Đặt is_icon=True
+                coin_group.add(score_coin)
+                score_rune = Rune(tile_size + 130, 25, True)  # Đặt is_icon=True
+                rune_group.add(score_rune)
                 world_data = []
                 world_data = load_level_data(1)
                 world = World(world_data)
