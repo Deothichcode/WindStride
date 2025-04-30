@@ -907,6 +907,7 @@ world = World(world_data)
 def run_level(screen, screen_width, screen_height):
     global score
     global game_over
+    global world
     # Khởi tạo âm thanh
     try:
         game_music = pygame.mixer.Sound('assests/sfx/menusfx/NinjaSchool.mp3')
@@ -933,23 +934,34 @@ def run_level(screen, screen_width, screen_height):
         green_slime_group.draw(screen)
         skeleton_group.draw(screen)
 
-        for sprite in coin_group:
-            if pygame.sprite.collide_rect(player, sprite) and not sprite.is_icon:
-                sprite.kill()
-                score += 1
-        draw_text('X ' + str(score) + '/3', font_score, white, tile_size - 10, 10)
 
         lava_group.draw(screen)
-
-        coin_group.update()
         coin_group.draw(screen)
+        coin_group.update()
 
         game_over = player.update(game_over)
         #Restart khi game over
         if game_over == True:
             if restart_button.draw():
+                blue_slime_group.empty()
+                green_slime_group.empty()
+                skeleton_group.empty()
+                coin_group.empty()
+                world_data = load_level_data(1)
+                world = World(world_data)
+                score_coin = Coin(tile_size - 30, 25, True)  # Đặt is_icon=True
+                coin_group.add(score_coin)
                 player.reset(35, screen_height - 210) #Vị trí khởi đầu của nhân vật
                 game_over = False
+                score = 0
+        else:        
+            for sprite in coin_group:
+                if pygame.sprite.collide_rect(player, sprite) and not sprite.is_icon:
+                    sprite.kill()
+                    score += 1
+            draw_text('X ' + str(score) + '/3', font_score, white, tile_size - 10, 10)
+            coin_group.update()
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 if game_music:
