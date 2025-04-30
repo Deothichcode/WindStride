@@ -30,7 +30,7 @@ except pygame.error:
     print("Không thể tải icon!")
 
 #load ảnh
-background_img = pygame.image.load('assests/background/PNG/game_background_2/game_background_2.png')
+background_img = pygame.image.load('assests/background/PNG/game_background_4/game_background_4.png')
 background_img = pygame.transform.scale(background_img, (screen_with, screen_height))
 
 def draw_text(text, font, text_col, x, y):
@@ -668,7 +668,7 @@ class Coin(pygame.sprite.Sprite):
 
 # Hàm để tải dữ liệu level từ file
 def load_level_data(self):
-    level_file = f'levels/level.data/level2_data'
+    level_file = f'levels/level.data/level4_data'
     try:
         if path.exists(level_file):
             pickle_in = open(level_file, 'rb')
