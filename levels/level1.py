@@ -13,12 +13,18 @@ screen_with = 1200
 screen_height = 700
 game_over = False
 
+
+#Define
+score = 0
+gold = 0
+
 # Tạo sprite groups
 blue_slime_group = pygame.sprite.Group()
 green_slime_group = pygame.sprite.Group()
 skeleton_group = pygame.sprite.Group()
 lava_group = pygame.sprite.Group()
 coin_group = pygame.sprite.Group()
+rune_group = pygame.sprite.Group()
 
 #define font
 font_score = pygame.font.SysFont('Bauhaus 93', 30)
@@ -527,13 +533,8 @@ class World():
                     self.animated_tiles.append(tile)
                     
                 elif tile == 16:  # Rune - Có hoạt ảnh
-                    img = self.animation_frames['rune'][0]  # Bắt đầu với frame đầu tiên
-                    img_rect = img.get_rect()
-                    # Căn giữa rune trong ô lưới
-                    img_rect.centerx = col_count * tile_size + tile_size // 2
-                    img_rect.centery = row_count * tile_size + tile_size // 2
-                    tile = (img, img_rect, 'rune')  # Đánh dấu cho hoạt ảnh
-                    self.animated_tiles.append(tile)
+                    rune = Rune(col_count * tile_size + (tile_size // 2), row_count * tile_size + (tile_size // 2))
+                    rune_group.add(rune)
                     
                 elif tile == 18:  # BlueFlower1 - Có hoạt ảnh
                     img = self.animation_frames['blue_flower1'][0]  # Sử dụng hoạt ảnh blue_flower1
@@ -577,12 +578,8 @@ class World():
         for i, tile in enumerate(self.animated_tiles):
             img, rect, tile_type = tile
             
-            # if tile_type == 'coin':
-            #     self.animated_tiles[i] = (self.animation_frames['coin'][self.animation_index % len(self.animation_frames['coin'])], rect, tile_type)
             if tile_type == 'flag':
                 self.animated_tiles[i] = (self.animation_frames['flag'][self.animation_index % len(self.animation_frames['flag'])], rect, tile_type)
-            elif tile_type == 'rune':
-                self.animated_tiles[i] = (self.animation_frames['rune'][self.animation_index % len(self.animation_frames['rune'])], rect, tile_type)
             elif tile_type == 'plant':
                 plant_index = (pygame.time.get_ticks() // 50) % len(self.animation_frames['plant'])  # Sử dụng thời gian thực để animation mượt mà và nhanh hơn
                 self.animated_tiles[i] = (self.animation_frames['plant'][plant_index], rect, tile_type)
@@ -629,12 +626,6 @@ class World():
             # Bỏ qua các tile đặc biệt cần vẽ riêng
             if len(tile) <= 2 or tile[2] not in ['lava', 'platform_x']:
                 screen.blit(tile[0], tile[1])
-        
-        # Vẽ các tile hoạt ảnh còn lại (đồng xu, rune)
-        for tile in self.animated_tiles:
-            img, rect, tile_type = tile
-            if tile_type != 'flag' and not tile_type.startswith('plant') and tile_type != 'plant' and not tile_type.startswith('blue_flower'):
-                screen.blit(img, rect)
         
         # Vẽ các tile đặc biệt phía trên cùng (lava, platforms)
         for tile in self.tile_list:
@@ -845,6 +836,30 @@ class Coin(pygame.sprite.Sprite):
             self.image = pygame.transform.scale(img, (tile_size // 2, tile_size // 2))
         
 
+class Rune(pygame.sprite.Sprite):
+    def __init__(self, x, y, is_icon=False):
+        pygame.sprite.Sprite.__init__(self)
+        img = pygame.image.load('assests/objects/Item/rune/1.png')
+        self.image = pygame.transform.scale(img, (tile_size // 2, tile_size // 2))
+        self.rect = self.image.get_rect()
+        self.rect.center = (x,y)
+        self.is_icon = is_icon  # Đánh dấu nếu là icon
+
+        self.rune_frames = []
+        self.rune_frames.append(pygame.transform.scale(img, (int(tile_size * 0.5), int(tile_size * 0.5))))
+        for i in range(2, 5):
+            img = pygame.image.load(f'assests/objects/Item/rune/{i}.png')
+            self.rune_frames.append(pygame.transform.scale(img, (int(tile_size * 0.5), int(tile_size * 0.5))))
+        self.animation_count = 0
+        self.animation_index = 0
+
+    def update(self):
+        self.animation_count += 1
+        if self.animation_count >= 10:
+            self.animation_count = 0
+            self.animation_index = (self.animation_index + 1) % len(self.rune_frames)
+            img = self.rune_frames[self.animation_index]
+            self.image = pygame.transform.scale(img, (tile_size // 2, tile_size // 2))
 
 # Hàm để tải dữ liệu level từ file
 def load_level_data(self):
@@ -885,19 +900,12 @@ def load_level_data(self):
 #Lop nhan vat
 player = Player(35, screen_height - 210) #Vị trí khởi đầu của nhân vật
 
-#Define
-score = 0
-
-#Tao cac vat the
-blue_slime_group = pygame.sprite.Group()
-green_slime_group = pygame.sprite.Group()
-skeleton_group = pygame.sprite.Group()
-coin_group = pygame.sprite.Group()
-lava_group = pygame.sprite.Group()
 
 # Tạo coin icon cho điểm số (đánh dấu là icon)
 score_coin = Coin(tile_size - 30, 25, True)  # Đặt is_icon=True
 coin_group.add(score_coin)
+score_rune = Rune(tile_size + 130, 25, True)  # Đặt is_icon=True
+rune_group.add(score_rune)
 
 # Tải dữ liệu level từ file
 world_data = load_level_data(1)
@@ -906,6 +914,7 @@ world = World(world_data)
 
 def run_level(screen, screen_width, screen_height):
     global score
+    global gold
     global game_over
     global world
     # Khởi tạo âm thanh
@@ -938,6 +947,8 @@ def run_level(screen, screen_width, screen_height):
         lava_group.draw(screen)
         coin_group.draw(screen)
         coin_group.update()
+        rune_group.draw(screen)
+        rune_group.update()
 
         game_over = player.update(game_over)
         #Restart khi game over
@@ -946,14 +957,13 @@ def run_level(screen, screen_width, screen_height):
                 blue_slime_group.empty()
                 green_slime_group.empty()
                 skeleton_group.empty()
-                coin_group.empty()
+                world_data = []
                 world_data = load_level_data(1)
                 world = World(world_data)
-                score_coin = Coin(tile_size - 30, 25, True)  # Đặt is_icon=True
-                coin_group.add(score_coin)
                 player.reset(35, screen_height - 210) #Vị trí khởi đầu của nhân vật
                 game_over = False
                 score = 0
+                gold = 0
         else:        
             for sprite in coin_group:
                 if pygame.sprite.collide_rect(player, sprite) and not sprite.is_icon:
@@ -961,6 +971,13 @@ def run_level(screen, screen_width, screen_height):
                     score += 1
             draw_text('X ' + str(score) + '/3', font_score, white, tile_size - 10, 10)
             coin_group.update()
+
+            for sprite in rune_group:
+                if pygame.sprite.collide_rect(player, sprite) and not sprite.is_icon:
+                    sprite.kill()
+                    gold += 1
+            draw_text('X ' + str(gold), font_score, white, tile_size + 150, 10)
+            rune_group.update()
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
