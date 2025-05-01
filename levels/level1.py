@@ -892,7 +892,7 @@ def load_level_data(self):
             pickle_in = open(level_file, 'rb')
             data = pickle.load(pickle_in)
             pickle_in.close()
-            print(f"Level data loaded from {level_file}")
+            #print(f"Level data loaded from {level_file}")
             return data
         else:
             print(f"File not found: {level_file}")
@@ -1122,7 +1122,7 @@ def run_level(screen, screen_width, screen_height):
         if game_win == True:
             if game_music:
                     game_music.stop()
-            import level2 as lv2
+            import levels.level2 as lv2
             screen = pygame.display.set_mode((screen_with, screen_height))
             show_loading_screen()
             run_lv = lv2.run_level(screen, screen_with, screen_height) 

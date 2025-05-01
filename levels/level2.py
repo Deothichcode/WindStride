@@ -834,7 +834,7 @@ def load_level_data(self):
             pickle_in = open(level_file, 'rb')
             data = pickle.load(pickle_in)
             pickle_in.close()
-            print(f"Level data loaded from {level_file}")
+            #print(f"Level data loaded from {level_file}")
             return data
         else:
             print(f"File not found: {level_file}")
