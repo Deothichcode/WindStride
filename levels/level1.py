@@ -5,8 +5,11 @@ from os import path
 import random
 
 import io
-import sys
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+# import sys
+
+# if hasattr(sys.stdout, "buffer"):
+#     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+# sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 pygame.init()
 
@@ -972,7 +975,7 @@ def show_loading_screen():
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
-                    sys.exit()
+                    # sys.exit()
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     return
             
