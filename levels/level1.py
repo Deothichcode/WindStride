@@ -260,11 +260,19 @@ class Player():
                     self.image = self.dead_image[self.death_index]
                     self.death_index += 1
                     self.death_counter = 0
-           
             else:
             # Animation đã xong giữ frame cuối
                 self.image = self.dead_image[-1]
-                self.rect.y -= 0.5  
+                self.rect.y -= 0.5
+                if self.vel_y > 10:  # Giới hạn tốc độ rơi tối đa
+                    self.vel_y = 10
+                self.rect.y += self.vel_y     
+
+                for tile in world.tile_list:
+                    if tile[1].colliderect(self.rect.x, self.rect.y, self.width, self.height):
+                        # Dừng rơi khi chạm đất
+                        self.rect.bottom = tile[1].top
+                        self.vel_y = 0
 
         # Giới hạn màn hình
         if self.rect.left < 0:

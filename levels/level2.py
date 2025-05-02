@@ -774,7 +774,7 @@ class Enemy(pygame.sprite.Sprite):
             self.rect.y += dy
             
             # Kiểm tra đổi hướng sau 3 lần nhảy
-            if self.on_ground and self.jump_count >= self.max_jumps:
+            if self.on_ground and self.jump_count >= 2:
                 self.direction *= -1
                 self.jump_count = 0
             
