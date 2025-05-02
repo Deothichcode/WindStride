@@ -55,7 +55,78 @@ except pygame.error:
 #load ảnh
 background_img = pygame.image.load('assests/background/PNG/game_background_2/game_background_2.png')
 background_img = pygame.transform.scale(background_img, (screen_with, screen_height))
+#Ảnh số sao nhận được khi chơi xong
+star_images = [
+    pygame.image.load("assests/gui/PNG/level_select/star_4.png").convert_alpha(),
+    pygame.image.load("assests/gui/PNG/level_select/star_1.png").convert_alpha(),
+    pygame.image.load("assests/gui/PNG/level_select/star_2.png").convert_alpha(),
+    pygame.image.load("assests/gui/PNG/level_select/star_3.png").convert_alpha(),
+]
+# Quy đổi điểm thành sao 
+def get_star_count(score, max_score):
+    ratio = score / max_score
+    if ratio >= 0.9:
+        return 1
+    elif ratio >= 0.6:
+        return 2
+    elif ratio >= 0.3:
+        return 3
+    else:
+        return 0
 
+#Vẽ sao     
+def draw_stars(screen, score, max_score, x, y):
+    star_count = get_star_count(score, max_score)
+    screen.blit(star_images[star_count], (x, y))
+
+#You win
+def show_win_popup(screen, score, max_score, star_images, screen_width, screen_height):
+    popup_width = 500
+    popup_height = 350
+    popup_x = (screen_width - popup_width) // 2
+    popup_y = (screen_height - popup_height) // 2
+
+    # Nền mờ
+    overlay = pygame.Surface((screen_width, screen_height))
+    overlay.set_alpha(180)
+    overlay.fill((0, 0, 0))
+    screen.blit(overlay, (0, 0))
+
+    # Hộp popup
+    pygame.draw.rect(screen, (30, 30, 30), (popup_x, popup_y, popup_width, popup_height), border_radius=20)
+    pygame.draw.rect(screen, (255, 255, 255), (popup_x, popup_y, popup_width, popup_height), 4, border_radius=20)
+
+    # Load hình "You Win!"
+    you_win_img = pygame.image.load("assests/gui/PNG/you_win/header.png").convert_alpha()
+    you_win_rect = you_win_img.get_rect(center=(screen_width // 2, popup_y + 60))
+    screen.blit(you_win_img, you_win_rect)
+
+    # Hiển thị số sao theo điểm
+    star_count = get_star_count(score, max_score)
+    star_img = star_images[star_count]  # đã load trước: danh sách star_0 đến star_3
+    star_rect = star_img.get_rect(center=(screen_width // 2, popup_y + 140))
+    screen.blit(star_img, star_rect)
+
+    # Nút chơi tiếp và về menu
+    continue_button = Button("assests/gui/PNG/btn/play.png", popup_x + 140, popup_y + 250, 0.5)
+    menu_button = Button("assests/gui/PNG/btn/menu.png", popup_x + 360, popup_y + 250, 0.5)
+
+    pygame.display.update()
+
+    # Đợi người chơi nhấn nút
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                pygame.quit()
+
+        if continue_button.draw():
+            return "continue"
+        if menu_button.draw():
+            return "menu"
+
+        pygame.display.update()
 def draw_text(text, font, text_col, x, y):
     img = font.render(text, True, text_col)
     screen.blit(img, (x,y))
@@ -260,19 +331,20 @@ class Player():
                     self.image = self.dead_image[self.death_index]
                     self.death_index += 1
                     self.death_counter = 0
+           
             else:
             # Animation đã xong giữ frame cuối
                 self.image = self.dead_image[-1]
                 self.rect.y -= 0.5
                 if self.vel_y > 10:  # Giới hạn tốc độ rơi tối đa
                     self.vel_y = 10
-                self.rect.y += self.vel_y     
+                self.rect.y += self.vel_y
 
                 for tile in world.tile_list:
                     if tile[1].colliderect(self.rect.x, self.rect.y, self.width, self.height):
                         # Dừng rơi khi chạm đất
                         self.rect.bottom = tile[1].top
-                        self.vel_y = 0
+                        self.vel_y = 0  
 
         # Giới hạn màn hình
         if self.rect.left < 0:
@@ -1074,7 +1146,7 @@ def run_level(screen, screen_width, screen_height):
         clock.tick(fps)
         screen.blit(background_img,(0,0))
         world.draw()
-        draw_grid()
+        #draw_grid()
 
         # Cập nhật và vẽ các enemy
         blue_slime_group.update()
@@ -1133,10 +1205,35 @@ def run_level(screen, screen_width, screen_height):
         if game_win == True:
             if game_music:
                     game_music.stop()
-            import levels.level2 as lv2
-            screen = pygame.display.set_mode((screen_with, screen_height))
-            show_loading_screen()
-            run_lv = lv2.run_level(screen, screen_with, screen_height) 
+            action = show_win_popup(screen, score, 3, star_images, screen_width, screen_height)
+
+            if action == "continue":
+                import levels.level2 as lv2
+                screen = pygame.display.set_mode((screen_width, screen_height))
+                show_loading_screen()
+                run_lv = lv2.run_level(screen, screen_width, screen_height)
+                return
+            elif action == "menu":
+                show_loading_screen()
+                blue_slime_group.empty()
+                green_slime_group.empty()
+                skeleton_group.empty()
+                coin_group.empty()
+                rune_group.empty()
+                flag_group.empty()
+                score_coin = Coin(tile_size - 30, 25, True)  # Đặt is_icon=True
+                coin_group.add(score_coin)
+                score_rune = Rune(tile_size + 130, 25, True)  # Đặt is_icon=True
+                rune_group.add(score_rune)
+                world_data = []
+                world_data = load_level_data(1)
+                world = World(world_data)
+                player.reset(35, screen_height - 210) #Vị trí khởi đầu của nhân vật
+                score_rs = score
+                score = 0
+                gold = 0
+                game_win = False
+                return True, score_rs # hoặc chuyển về menu chính nếu có
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:

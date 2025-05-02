@@ -172,6 +172,9 @@ class Game:
             self.level_frame = pygame.image.load('assests/gui/PNG/level_select/bg.png').convert_alpha()
             self.level_star = pygame.image.load('assests/gui/PNG/level_select/star_4.png').convert_alpha()
             self.level_lock = pygame.image.load('assests/gui/PNG/level_select/lock.png').convert_alpha()
+            self.level_star3 = pygame.image.load('assests/gui/PNG/level_select/star_1.png').convert_alpha()
+            self.level_star2 = pygame.image.load('assests/gui/PNG/level_select/star_2.png').convert_alpha()
+            self.level_star1 = pygame.image.load('assests/gui/PNG/level_select/star_3.png').convert_alpha()
         except pygame.error as e:
             print(f"Không thể tải hình ảnh cho màn hình chọn màn chơi: {e}")
         
@@ -395,7 +398,7 @@ class Game:
             # Hiển thị hộp thoại xác nhận thoát
             self.show_quit_dialog = True
 
-    def draw_level_select(self):
+    def draw_level_select(self, score_rs):
         button_scale = 0.25
         button_x = 0 #Vị trí đầu màn hình
         
@@ -444,9 +447,14 @@ class Game:
                     self.screen.blit(number_text, number_rect)
                     
                     # Vẽ sao đánh giá
-                    star = pygame.transform.scale(self.level_star, (150, 70))
-                    star_rect = star.get_rect(center=(level_x + level_width // 2, level_y + 140))
-                    self.screen.blit(star, star_rect)
+                    if score_rs == 0:
+                        star = pygame.transform.scale(self.level_star, (150, 70))
+                        star_rect = star.get_rect(center=(level_x + level_width // 2, level_y + 140))
+                        self.screen.blit(star, star_rect)
+                    elif score_rs == 3:
+                        star = pygame.transform.scale(self.level_star3, (150, 70))
+                        star_rect = star.get_rect(center=(level_x + level_width // 2, level_y + 140))
+                        self.screen.blit(star, star_rect)
                 else:
                     # Vẽ ổ khóa nếu màn chơi chưa mở
                     lock = pygame.transform.scale(self.level_lock, (80, 80))
@@ -1044,6 +1052,7 @@ class Game:
             
         # Khởi tạo biến để lưu trữ level đã pre-load
         self.preloaded_level = None
+        self.score_rs = 0 
         
         while True:
             # Tính toán delta time
@@ -1088,7 +1097,7 @@ class Game:
                     self.menu_music.play(-1)
                     self.music_playing = True
             elif self.state == "level_select":
-                self.draw_level_select()
+                self.draw_level_select(self.score_rs)
             elif self.state == "game":
                 # Dừng nhạc menu khi vào game
                 if self.menu_music and self.music_playing:
@@ -1098,12 +1107,10 @@ class Game:
                 # Sử dụng level đã pre-load nếu có
                 if self.preloaded_level and self.current_level == 1:
                     # Chạy level1 và nhận kết quả
-                    return_to_menu = self.preloaded_level.run_level(self.screen, self.screen_width, self.screen_height)
-                    
-                    # Xử lý kết quả trả về
-                    if return_to_menu:
+                    return_to_select_level, self.score_rs = self.preloaded_level.run_level(self.screen, self.screen_width, self.screen_height)
+                    if return_to_select_level:
                         # Quay về menu
-                        self.state = "menu"
+                        self.state = "level_select"
                         # Phát lại nhạc menu
                         if self.menu_music and not self.music_playing:
                             self.menu_music.play(-1)
