@@ -4,6 +4,13 @@ import pickle
 from os import path
 import random
 
+import io
+# import sys
+
+# if hasattr(sys.stdout, "buffer"):
+#     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+# sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
 pygame.init()
 
 clock = pygame.time.Clock()
@@ -12,6 +19,11 @@ fps = 60
 screen_with = 1200
 screen_height = 700
 game_over = False
+game_win = False
+
+#Define
+score = 0
+gold = 0
 
 # Tạo sprite groups
 blue_slime_group = pygame.sprite.Group()
@@ -19,9 +31,13 @@ green_slime_group = pygame.sprite.Group()
 skeleton_group = pygame.sprite.Group()
 lava_group = pygame.sprite.Group()
 coin_group = pygame.sprite.Group()
+rune_group = pygame.sprite.Group()
+flag_group = pygame.sprite.Group()
 
 #define font
 font_score = pygame.font.SysFont('Bauhaus 93', 30)
+font_small = pygame.font.Font('assests/font/Arial.ttf', 36)
+font_small2 = pygame.font.Font('assests/font/Arial.ttf', 20)
 
 #define col
 white = (255,255,255)
@@ -37,7 +53,7 @@ except pygame.error:
     print("Không thể tải icon!")
 
 #load ảnh
-background_img = pygame.image.load('assests/background/PNG/game_background_3/game_background_3.png')
+background_img = pygame.image.load('assests/background/PNG/game_background_2/game_background_2.png')
 background_img = pygame.transform.scale(background_img, (screen_with, screen_height))
 
 def draw_text(text, font, text_col, x, y):
@@ -120,63 +136,30 @@ class AnimatedObject:
     
     def draw(self):
         screen.blit(self.image, self.rect)
-
-
+class Button():
+    def __init__(self, image, x, y, scale=1.0):
+        self.image = pygame.image.load(image).convert_alpha()
+        width = int(self.image.get_width() * scale)
+        height = int(self.image.get_height() * scale)
+        self.image = pygame.transform.scale(self.image, (width, height))
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
+    def draw(self):
+        action = False
+        pos = pygame.mouse.get_pos()
+        if self.rect.collidepoint(pos):
+            if pygame.mouse.get_pressed()[0] == 1 and self.clicked == False:
+                action = True
+                self.clicked = True
+        if pygame.mouse.get_pressed()[0] == 0:
+            self.clicked = False
+        screen.blit(self.image, self.rect)
+        return action
 class Player():
     def __init__(self, x, y):
-        self.images_right = [] #list frame di sang phai
-        self.images_left = [] #list frame di sang trai
-        self.images_jump_right = [] #list frame nhảy sang phải
-        self.images_jump_left = [] #list frame nhảy sang trái
-        self.index = 0 #thu tu frame
-        self.counter = 0 #thoi gian lam moi frame
-        
-        # Load frames chạy
-        for num in range(1,7):
-            img_right = pygame.image.load(f'assests/character/male/run/run{num}.png')
-            img_right = pygame.transform.scale(img_right, (37, 64))
-            img_left = pygame.transform.flip(img_right, True, False)
-            self.images_right.append(img_right)
-            self.images_left.append(img_left)
-            
-        # Load frames nhảy
-        for num in range(1,8):
-            img_jump_right = pygame.image.load(f'assests/character/male/jump/j{num}.png')
-            img_jump_right = pygame.transform.scale(img_jump_right, (37,64))
-            img_jump_left = pygame.transform.flip(img_jump_right, True, False)
-            self.images_jump_right.append(img_jump_right)
-            self.images_jump_left.append(img_jump_left)
+        self.reset(x,y)
 
-        # Load frame đứng yên
-        self.idle_image_right = pygame.image.load('assests/character/male/idle/Idle.png')
-        self.idle_image_right = pygame.transform.scale(self.idle_image_right, (37, 64))
-        self.idle_image_left = pygame.transform.flip(self.idle_image_right, True, False)
-        self.image = self.idle_image_right
-        
-        # Nhân vật game over 
-        self.dead_image = [pygame.image.load('assests/character/male/dead/1.png'),
-                           pygame.image.load('assests/character/male/dead/2.png'),
-                           pygame.image.load('assests/character/male/dead/3.png'),
-                           pygame.image.load('assests/character/male/dead/4.png')]
-        self.death_index = 0
-        self.death_counter = 0
-        # Tạo hitbox nhỏ hơn sprite
-        self.width = 22  
-        self.height = 55 
-        self.rect = pygame.Rect(0, 0, self.width, self.height)
-        
-
-        sprite_width = 37
-        sprite_height = 64
-        self.rect.x = x + (sprite_width - self.width) // 2  # Căn giữa theo chiều ngang
-        self.rect.y = y + (sprite_height - self.height) // 2  # Căn giữa theo chiều dọc
-        
-        self.vel_y = 0
-        self.jumped = False
-        self.direction = 0
-        self.in_air = False  # Biến kiểm tra nhân vật có đang trong không trung
-
-    def update(self,game_over):
+    def update(self,game_over, game_win):
         dx = 0
         dy = 0
         walk_cooldown = 5
@@ -259,6 +242,13 @@ class Player():
                 #Xử lý va chạm với Lava 
                 if pygame.sprite.spritecollide(self,lava_group,False):
                     game_over = True
+                #Xử lý va chạm với Enemy
+                if pygame.sprite.spritecollide(self,blue_slime_group,False) or pygame.sprite.spritecollide(self,green_slime_group,False) or pygame.sprite.spritecollide(self,skeleton_group,False) :
+                    game_over = True
+                #Xử lý va chạm với Flag
+                if pygame.sprite.spritecollide(self, flag_group, True):
+                    game_win = True
+
             # Cập nhật vị trí
             self.rect.x += dx
             self.rect.y += dy
@@ -296,8 +286,60 @@ class Player():
         # Vẽ nhân vật và hitbox
         screen.blit(self.image, (sprite_x, sprite_y))
         #pygame.draw.rect(screen, (255, 0, 0), self.rect, 2)
-        return game_over
+        return game_over, game_win
 
+    def reset(self, x ,y):
+        self.images_right = [] #list frame di sang phai
+        self.images_left = [] #list frame di sang trai
+        self.images_jump_right = [] #list frame nhảy sang phải
+        self.images_jump_left = [] #list frame nhảy sang trái
+        self.index = 0 #thu tu frame
+        self.counter = 0 #thoi gian lam moi frame
+        
+        # Load frames chạy
+        for num in range(1,7):
+            img_right = pygame.image.load(f'assests/character/male/run/run{num}.png')
+            img_right = pygame.transform.scale(img_right, (37, 64))
+            img_left = pygame.transform.flip(img_right, True, False)
+            self.images_right.append(img_right)
+            self.images_left.append(img_left)
+            
+        # Load frames nhảy
+        for num in range(1,8):
+            img_jump_right = pygame.image.load(f'assests/character/male/jump/j{num}.png')
+            img_jump_right = pygame.transform.scale(img_jump_right, (37,64))
+            img_jump_left = pygame.transform.flip(img_jump_right, True, False)
+            self.images_jump_right.append(img_jump_right)
+            self.images_jump_left.append(img_jump_left)
+
+        # Load frame đứng yên
+        self.idle_image_right = pygame.image.load('assests/character/male/idle/Idle.png')
+        self.idle_image_right = pygame.transform.scale(self.idle_image_right, (37, 64))
+        self.idle_image_left = pygame.transform.flip(self.idle_image_right, True, False)
+        self.image = self.idle_image_right
+        
+        # Nhân vật game over 
+        self.dead_image = [pygame.image.load('assests/character/male/dead/1.png'),
+                           pygame.image.load('assests/character/male/dead/2.png'),
+                           pygame.image.load('assests/character/male/dead/3.png'),
+                           pygame.image.load('assests/character/male/dead/4.png')]
+        self.death_index = 0
+        self.death_counter = 0
+        # Tạo hitbox nhỏ hơn sprite
+        self.width = 22  
+        self.height = 55 
+        self.rect = pygame.Rect(0, 0, self.width, self.height)
+        
+
+        sprite_width = 37
+        sprite_height = 64
+        self.rect.x = x + (sprite_width - self.width) // 2  # Căn giữa theo chiều ngang
+        self.rect.y = y + (sprite_height - self.height) // 2  # Căn giữa theo chiều dọc
+        
+        self.vel_y = 0
+        self.jumped = False
+        self.direction = 0
+        self.in_air = False  #Biến kiểm tra nhân vật có đang trong không trung
 
 class World():
     def __init__(self,data):
@@ -330,20 +372,12 @@ class World():
         # tải các khung hình động cho các đối tượng khác nhau
         
         # Các khung hình động cho cờ
-        flag_frames = []
-        flag_frames.append(pygame.transform.scale(exit_img, (int(tile_size*1.5), int(tile_size * 2.25))))  # Sử dụng exit_img đã tải làm frame đầu tiên
-        for i in range(2, 5):
-            img = pygame.image.load(f'assests/objects/Item/flag/{i}.png')
-            flag_frames.append(pygame.transform.scale(img, (int(tile_size*1.5), int(tile_size * 2.25))))
-        self.animation_frames['flag'] = flag_frames
-        
-        # Các khung hình động cho rune
-        rune_frames = []
-        rune_frames.append(pygame.transform.scale(rune_img, (int(tile_size * 0.5), int(tile_size * 0.5))))  # Sử dụng rune_img đã tải làm frame đầu tiên
-        for i in range(2, 5):
-            img = pygame.image.load(f'assests/objects/Item/rune/{i}.png')
-            rune_frames.append(pygame.transform.scale(img, (int(tile_size * 0.5), int(tile_size * 0.5))))
-        self.animation_frames['rune'] = rune_frames
+        # flag_frames = []
+        # flag_frames.append(pygame.transform.scale(exit_img, (int(tile_size*1.5), int(tile_size * 2.25))))  # Sử dụng exit_img đã tải làm frame đầu tiên
+        # for i in range(2, 5):
+        #     img = pygame.image.load(f'assests/objects/Item/flag/{i}.png')
+        #     flag_frames.append(pygame.transform.scale(img, (int(tile_size*1.5), int(tile_size * 2.25))))
+        # self.animation_frames['flag'] = flag_frames
         
         # Các khung hình động cho cây - thêm hoạt ảnh cho cây
         plant_frames = []
@@ -456,12 +490,8 @@ class World():
                     coin_group.add(coin)
                     
                 elif tile == 10:  # Exit (Flag) - Có hoạt ảnh
-                    img = self.animation_frames['flag'][0]  # Bắt đầu với frame đầu tiên
-                    img_rect = img.get_rect()
-                    img_rect.x = col_count * tile_size - tile_size//4
-                    img_rect.y = row_count * tile_size - (tile_size * 0.75)
-                    tile = (img, img_rect, 'flag')  # Đánh dấu cho hoạt ảnh
-                    self.animated_tiles.append(tile)
+                    flag = Flag(col_count * tile_size - tile_size//4, row_count * tile_size - (tile_size * 1.25) )
+                    flag_group.add(flag)
                     
                 elif tile == 11:  # Plant2 - Có hoạt ảnh
                     img = self.animation_frames['plant2'][0]  # Sử dụng hoạt ảnh cụ thể cho plant2
@@ -504,13 +534,8 @@ class World():
                     self.animated_tiles.append(tile)
                     
                 elif tile == 16:  # Rune - Có hoạt ảnh
-                    img = self.animation_frames['rune'][0]  # Bắt đầu với frame đầu tiên
-                    img_rect = img.get_rect()
-                    # Căn giữa rune trong ô lưới
-                    img_rect.centerx = col_count * tile_size + tile_size // 2
-                    img_rect.centery = row_count * tile_size + tile_size // 2
-                    tile = (img, img_rect, 'rune')  # Đánh dấu cho hoạt ảnh
-                    self.animated_tiles.append(tile)
+                    rune = Rune(col_count * tile_size + (tile_size // 2), row_count * tile_size + (tile_size // 2))
+                    rune_group.add(rune)
                     
                 elif tile == 18:  # BlueFlower1 - Có hoạt ảnh
                     img = self.animation_frames['blue_flower1'][0]  # Sử dụng hoạt ảnh blue_flower1
@@ -554,13 +579,9 @@ class World():
         for i, tile in enumerate(self.animated_tiles):
             img, rect, tile_type = tile
             
-            # if tile_type == 'coin':
-            #     self.animated_tiles[i] = (self.animation_frames['coin'][self.animation_index % len(self.animation_frames['coin'])], rect, tile_type)
-            if tile_type == 'flag':
-                self.animated_tiles[i] = (self.animation_frames['flag'][self.animation_index % len(self.animation_frames['flag'])], rect, tile_type)
-            elif tile_type == 'rune':
-                self.animated_tiles[i] = (self.animation_frames['rune'][self.animation_index % len(self.animation_frames['rune'])], rect, tile_type)
-            elif tile_type == 'plant':
+            # if tile_type == 'flag':
+            #     self.animated_tiles[i] = (self.animation_frames['flag'][self.animation_index % len(self.animation_frames['flag'])], rect, tile_type)
+            if tile_type == 'plant':
                 plant_index = (pygame.time.get_ticks() // 50) % len(self.animation_frames['plant'])  # Sử dụng thời gian thực để animation mượt mà và nhanh hơn
                 self.animated_tiles[i] = (self.animation_frames['plant'][plant_index], rect, tile_type)
             elif tile_type == 'plant2':
@@ -606,12 +627,6 @@ class World():
             # Bỏ qua các tile đặc biệt cần vẽ riêng
             if len(tile) <= 2 or tile[2] not in ['lava', 'platform_x']:
                 screen.blit(tile[0], tile[1])
-        
-        # Vẽ các tile hoạt ảnh còn lại (đồng xu, rune)
-        for tile in self.animated_tiles:
-            img, rect, tile_type = tile
-            if tile_type != 'flag' and not tile_type.startswith('plant') and tile_type != 'plant' and not tile_type.startswith('blue_flower'):
-                screen.blit(img, rect)
         
         # Vẽ các tile đặc biệt phía trên cùng (lava, platforms)
         for tile in self.tile_list:
@@ -795,7 +810,7 @@ class Lava(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y= y
-        
+                        
 class Coin(pygame.sprite.Sprite):
     def __init__(self, x, y, is_icon=False):
         pygame.sprite.Sprite.__init__(self)
@@ -822,6 +837,55 @@ class Coin(pygame.sprite.Sprite):
             self.image = pygame.transform.scale(img, (tile_size // 2, tile_size // 2))
         
 
+class Rune(pygame.sprite.Sprite):
+    def __init__(self, x, y, is_icon=False):
+        pygame.sprite.Sprite.__init__(self)
+        img = pygame.image.load('assests/objects/Item/rune/1.png')
+        self.image = pygame.transform.scale(img, (tile_size // 2, tile_size // 2))
+        self.rect = self.image.get_rect()
+        self.rect.center = (x,y)
+        self.is_icon = is_icon  # Đánh dấu nếu là icon
+
+        self.rune_frames = []
+        self.rune_frames.append(pygame.transform.scale(img, (int(tile_size * 0.5), int(tile_size * 0.5))))
+        for i in range(2, 5):
+            img = pygame.image.load(f'assests/objects/Item/rune/{i}.png')
+            self.rune_frames.append(pygame.transform.scale(img, (int(tile_size * 0.5), int(tile_size * 0.5))))
+        self.animation_count = 0
+        self.animation_index = 0
+
+    def update(self):
+        self.animation_count += 1
+        if self.animation_count >= 10:
+            self.animation_count = 0
+            self.animation_index = (self.animation_index + 1) % len(self.rune_frames)
+            img = self.rune_frames[self.animation_index]
+            self.image = pygame.transform.scale(img, (tile_size // 2, tile_size // 2))
+
+class Flag(pygame.sprite.Sprite):
+    def __init__(self,x,y):
+        pygame.sprite.Sprite.__init__(self)
+        img = pygame.image.load('assests/objects/Item/flag/1.png')
+        self.image = pygame.transform.scale(img,(int(tile_size * 1.5), int(tile_size * 2.25)))
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+        self.flag_frames = []
+        self.flag_frames.append(pygame.transform.scale(img, (int(tile_size * 1.5), int(tile_size * 2.25))))
+        for i in range(2, 5):
+            img = pygame.image.load(f'assests/objects/Item/flag/{i}.png')
+            self.flag_frames.append(pygame.transform.scale(img, (int(tile_size * 1.5), int(tile_size * 2.25))))
+        self.animation_count = 0
+        self.animation_index = 0
+
+    def update(self):
+        self.animation_count += 1
+        if self.animation_count >= 10:
+            self.animation_count = 0
+            self.animation_index = (self.animation_index + 1) % len(self.flag_frames)
+            img = self.flag_frames[self.animation_index]
+            self.image = pygame.transform.scale(img, (int(tile_size * 1.5), int(tile_size * 2.25)))
 
 # Hàm để tải dữ liệu level từ file
 def load_level_data(self):
@@ -831,7 +895,7 @@ def load_level_data(self):
             pickle_in = open(level_file, 'rb')
             data = pickle.load(pickle_in)
             pickle_in.close()
-            print(f"Level data loaded from {level_file}")
+            #print(f"Level data loaded from {level_file}")
             return data
         else:
             print(f"File not found: {level_file}")
@@ -862,28 +926,131 @@ def load_level_data(self):
 #Lop nhan vat
 player = Player(35, screen_height - 210) #Vị trí khởi đầu của nhân vật
 
-#Define
-score = 0
-
-#Tao cac vat the
-blue_slime_group = pygame.sprite.Group()
-green_slime_group = pygame.sprite.Group()
-skeleton_group = pygame.sprite.Group()
-coin_group = pygame.sprite.Group()
-lava_group = pygame.sprite.Group()
 
 # Tạo coin icon cho điểm số (đánh dấu là icon)
 score_coin = Coin(tile_size - 30, 25, True)  # Đặt is_icon=True
 coin_group.add(score_coin)
+score_rune = Rune(tile_size + 130, 25, True)  # Đặt is_icon=True
+rune_group.add(score_rune)
 
 # Tải dữ liệu level từ file
 world_data = load_level_data(1)
 world = World(world_data)
 
+def show_loading_screen():
+        # Tải hình ảnh cho loading screen
+        try:
+            loadbar_bg = pygame.image.load('assests/gui/PNG/load_bar/bg.png').convert_alpha()
+            loadbar_1 = pygame.image.load('assests/gui/PNG/load_bar/1.png').convert_alpha()
+            loadbar_2 = pygame.image.load('assests/gui/PNG/load_bar/2.png').convert_alpha()
+            loadbar_3 = pygame.image.load('assests/gui/PNG/load_bar/3.png').convert_alpha()
+            loading_text = pygame.image.load('assests/gui/PNG/load_bar/text.png').convert_alpha()
+        except pygame.error as e:
+            print(f"Không thể tải hình ảnh loading bar: {e}")
+            return
+        
+        # Scale hình ảnh nếu cần
+        bar_width = 600
+        bar_height = 40
+        
+        loadbar_bg = pygame.transform.scale(loadbar_bg, (bar_width, bar_height))
+        loadbar_1 = pygame.transform.scale(loadbar_1, (bar_width, bar_height))
+        loadbar_2 = pygame.transform.scale(loadbar_2, (bar_width, bar_height))
+        loadbar_3 = pygame.transform.scale(loadbar_3, (bar_width, bar_height))
+        loading_text = pygame.transform.scale(loading_text, (400, 70))
+        
+        # Vị trí trung tâm màn hình
+        bar_x = screen_with // 2 - bar_width // 2
+        bar_y = screen_height // 2 - bar_height // 2
+        text_x = screen_with // 2 - loading_text.get_width() // 2
+        text_y = bar_y - loading_text.get_height() - 20
+        
+        # Thiết lập thời gian loading
+        loading_time = 3.0  # 3 giây
+        start_time = pygame.time.get_ticks()
+        current_time = start_time
+        
+        while (current_time - start_time) / 1000.0 < loading_time:
+            # Xử lý sự kiện trong khi loading (cho phép thoát game)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    # sys.exit()
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    return
+            
+            # Tính toán progress (0-100%)
+            progress = min(100, ((current_time - start_time) / 1000.0) / loading_time * 100)
+            
+            # Vẽ màn hình đen
+            screen.fill((0, 0, 0))
+            
+            # Vẽ text "Loading..."
+            screen.blit(loading_text, (text_x, text_y))
+            
+            # Vẽ loadbar background
+            screen.blit(loadbar_bg, (bar_x, bar_y))
+            
+            # Vẽ loadbar progress dựa vào % hoàn thành
+            if progress < 33:
+                # Hiển thị lần lượt 1/3 đầu thanh loading
+                progress_width = int(bar_width * progress / 33)
+                loadbar_crop = loadbar_1.subsurface((0, 0, progress_width, bar_height))
+                screen.blit(loadbar_crop, (bar_x, bar_y))
+            elif progress < 66:
+                # Hiển thị đầy đủ 1/3 đầu và một phần của 1/3 giữa
+                screen.blit(loadbar_1, (bar_x, bar_y))
+                progress_width = int(bar_width * (progress - 33) / 33)
+                loadbar_crop = loadbar_2.subsurface((0, 0, progress_width, bar_height))
+                screen.blit(loadbar_crop, (bar_x, bar_y))
+            else:
+                # Hiển thị đầy đủ 2/3 đầu và một phần của 1/3 cuối
+                screen.blit(loadbar_1, (bar_x, bar_y))
+                screen.blit(loadbar_2, (bar_x, bar_y))
+                progress_width = int(bar_width * (progress - 66) / 34)
+                loadbar_crop = loadbar_3.subsurface((0, 0, progress_width, bar_height))
+                screen.blit(loadbar_crop, (bar_x, bar_y))
+            
+            # Hiển thị % loading
+            percent_text = font_small.render(f"{int(progress)}%", True, white)
+            percent_rect = percent_text.get_rect(center=(screen_with // 2, bar_y + bar_height + 30))
+            screen.blit(percent_text, percent_rect)
+            
+            tips = [
+                "Đừng quên thu thập đủ vàng nhé chiến binh!!!"
+            ]
+            current_tip = random.choice(tips)
+            tip_text = font_small2.render(current_tip, True, (200, 200, 200))
+            screen.blit(tip_text, tip_text.get_rect(center=(screen_with // 2, screen_height - 100)))
+            
+            # Cập nhật màn hình
+            pygame.display.flip()
+            
+            # Cập nhật thời gian hiện tại
+            current_time = pygame.time.get_ticks()
+            
+            # Giới hạn FPS
+            clock.tick(60)
+
+        # Hiển thị frame cuối cùng với loading 100%
+        screen.fill((0, 0, 0))
+        screen.blit(loading_text, (text_x, text_y))
+        screen.blit(loadbar_bg, (bar_x, bar_y))
+        screen.blit(loadbar_1, (bar_x, bar_y))
+        screen.blit(loadbar_2, (bar_x, bar_y))
+        screen.blit(loadbar_3, (bar_x, bar_y))
+        percent_text = font_small.render("100%", True, white)
+        screen.blit(percent_text, percent_rect)
+        screen.blit(tip_text, tip_text.get_rect(center=(screen_with // 2, screen_height - 100)))
+        pygame.display.flip()
+
 
 def run_level(screen, screen_width, screen_height):
     global score
+    global gold
     global game_over
+    global game_win
+    global world
     # Khởi tạo âm thanh
     try:
         game_music = pygame.mixer.Sound('assests/sfx/menusfx/NinjaSchool.mp3')
@@ -892,14 +1059,14 @@ def run_level(screen, screen_width, screen_height):
     except pygame.error as e:
         print(f"Không thể tải nhạc game: {e}")
         game_music = None
-
+    restart_button = Button( 'assests/gui/PNG/btn/restart.png', screen_width *0.5 , screen_height *0.5, 0.5)
     #vòng lặp xử lý sự kiện game
     run = True
     while run:
         clock.tick(fps)
         screen.blit(background_img,(0,0))
         world.draw()
-        #draw_grid()
+        draw_grid()
 
         # Cập nhật và vẽ các enemy
         blue_slime_group.update()
@@ -910,18 +1077,59 @@ def run_level(screen, screen_width, screen_height):
         green_slime_group.draw(screen)
         skeleton_group.draw(screen)
 
-        for sprite in coin_group:
-            if pygame.sprite.collide_rect(player, sprite) and not sprite.is_icon:
-                sprite.kill()
-                score += 1
-        draw_text('X ' + str(score) + '/3', font_score, white, tile_size - 10, 10)
+        flag_group.draw(screen)
+        flag_group.update()
 
         lava_group.draw(screen)
-
-        coin_group.update()
         coin_group.draw(screen)
+        coin_group.update()
+        rune_group.draw(screen)
+        rune_group.update()
 
-        game_over = player.update(game_over)
+        game_over, game_win = player.update(game_over, game_win)
+        # game_over = player.update(game_over)
+        #Restart khi game over
+        if game_over == True:
+            if restart_button.draw():
+                blue_slime_group.empty()
+                green_slime_group.empty()
+                skeleton_group.empty()
+                coin_group.empty()
+                rune_group.empty()
+                flag_group.empty()
+                score_coin = Coin(tile_size - 30, 25, True)  # Đặt is_icon=True
+                coin_group.add(score_coin)
+                score_rune = Rune(tile_size + 130, 25, True)  # Đặt is_icon=True
+                rune_group.add(score_rune)
+                world_data = []
+                world_data = load_level_data(1)
+                world = World(world_data)
+                player.reset(35, screen_height - 210) #Vị trí khởi đầu của nhân vật
+                game_over = False
+                score = 0
+                gold = 0
+        else:        
+            for sprite in coin_group:
+                if pygame.sprite.collide_rect(player, sprite) and not sprite.is_icon:
+                    sprite.kill()
+                    score += 1
+            draw_text('X ' + str(score) + '/3', font_score, white, tile_size - 10, 10)
+            coin_group.update()
+
+            for sprite in rune_group:
+                if pygame.sprite.collide_rect(player, sprite) and not sprite.is_icon:
+                    sprite.kill()
+                    gold += 1
+            draw_text('X ' + str(gold), font_score, white, tile_size + 150, 10)
+            rune_group.update()
+        if game_win == True:
+            if game_music:
+                    game_music.stop()
+            # import levels.level2 as lv2
+            # screen = pygame.display.set_mode((screen_with, screen_height))
+            # show_loading_screen()
+            # run_lv = lv2.run_level(screen, screen_with, screen_height) 
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 if game_music:
