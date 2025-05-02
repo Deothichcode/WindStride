@@ -899,7 +899,7 @@ def run_level(screen, screen_width, screen_height):
         clock.tick(fps)
         screen.blit(background_img,(0,0))
         world.draw()
-        draw_grid()
+        #draw_grid()
 
         # Cập nhật và vẽ các enemy
         blue_slime_group.update()

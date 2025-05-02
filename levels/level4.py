@@ -37,7 +37,11 @@ except pygame.error:
     print("Không thể tải icon!")
 
 #load ảnh
+<<<<<<< Updated upstream
 background_img = pygame.image.load('assests/background/PNG/game_background_4/game_background_4.png')
+=======
+background_img = pygame.image.load('assests/background/PNG/game_background_3/game_background_3.png')
+>>>>>>> Stashed changes
 background_img = pygame.transform.scale(background_img, (screen_with, screen_height))
 
 def draw_text(text, font, text_col, x, y):
@@ -899,7 +903,7 @@ def run_level(screen, screen_width, screen_height):
         clock.tick(fps)
         screen.blit(background_img,(0,0))
         world.draw()
-        draw_grid()
+        #draw_grid()
 
         # Cập nhật và vẽ các enemy
         blue_slime_group.update()
