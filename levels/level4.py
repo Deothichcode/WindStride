@@ -37,11 +37,7 @@ except pygame.error:
     print("Không thể tải icon!")
 
 #load ảnh
-<<<<<<< Updated upstream
-background_img = pygame.image.load('assests/background/PNG/game_background_4/game_background_4.png')
-=======
 background_img = pygame.image.load('assests/background/PNG/game_background_3/game_background_3.png')
->>>>>>> Stashed changes
 background_img = pygame.transform.scale(background_img, (screen_with, screen_height))
 
 def draw_text(text, font, text_col, x, y):
