@@ -121,7 +121,6 @@ class AnimatedObject:
     def draw(self):
         screen.blit(self.image, self.rect)
 
-
 class Player():
     def __init__(self, x, y):
         self.images_right = [] #list frame di sang phai
