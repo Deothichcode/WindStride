@@ -335,7 +335,6 @@ class Player():
             else:
             # Animation đã xong giữ frame cuối
                 self.image = self.dead_image[-1]
-                self.rect.y -= 0.5
                 if self.vel_y > 10:  # Giới hạn tốc độ rơi tối đa
                     self.vel_y = 10
                 self.rect.y += self.vel_y
