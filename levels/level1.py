@@ -1336,7 +1336,6 @@ def run_level(screen, screen_width, screen_height):
                     world = World(world_data)
                     player.reset(35, screen_height - 210) #Vị trí khởi đầu của nhân vật
                     game_over = False
-                    
                     score = 0
                     gold = 0
                 if action == 'menu' :
@@ -1355,7 +1354,7 @@ def run_level(screen, screen_width, screen_height):
                     world_data = load_level_data(1)
                     world = World(world_data)
                     player.reset(35, screen_height - 210) #Vị trí khởi đầu của nhân vật
-                    score_rs = score
+                    score_rs = 0
                     score = 0
                     gold = 0
                     game_win = False
@@ -1427,7 +1426,7 @@ def run_level(screen, screen_width, screen_height):
                 world_data = load_level_data(1)
                 world = World(world_data)
                 player.reset(35, screen_height - 210) #Vị trí khởi đầu của nhân vật
-                score_rs = score
+                score_rs = 0
                 score = 0
                 gold = 0
                 game_win = False
