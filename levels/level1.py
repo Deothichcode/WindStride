@@ -1357,8 +1357,8 @@ def run_level(screen, screen_width, screen_height):
                     score_rs = 0
                     score = 0
                     gold = 0
-                    game_win = False
-                    return True , score_rs
+                    game_over = False
+                    return True , score_rs, False
             else:        
                 for sprite in coin_group:
                     if pygame.sprite.collide_rect(player, sprite) and not sprite.is_icon:
@@ -1379,11 +1379,29 @@ def run_level(screen, screen_width, screen_height):
                 action = show_win_popup(screen, score, 3, star_images, screen_width, screen_height)
 
                 if action == "continue":
-                    import levels.level2 as lv2
-                    screen = pygame.display.set_mode((screen_width, screen_height))
-                    show_loading_screen()
-                    run_lv = lv2.run_level(screen, screen_width, screen_height)
-                    return
+                    blue_slime_group.empty()
+                    green_slime_group.empty()
+                    skeleton_group.empty()
+                    coin_group.empty()
+                    rune_group.empty()
+                    flag_group.empty()
+                    score_coin = Coin(tile_size - 30, 25, True)  # Đặt is_icon=True
+                    coin_group.add(score_coin)
+                    score_rune = Rune(tile_size + 130, 25, True)  # Đặt is_icon=True
+                    rune_group.add(score_rune)
+                    world_data = []
+                    world_data = load_level_data(1)
+                    world = World(world_data)
+                    player.reset(35, screen_height - 210) #Vị trí khởi đầu của nhân vật
+                    score_rs = score
+                    score = 0
+                    gold = 0
+                    game_win = False
+                    # import levels.level2 as lv2
+                    # screen = pygame.display.set_mode((screen_width, screen_height))
+                    # show_loading_screen()
+                    # run_lv = lv2.run_level(screen, screen_width, screen_height)
+                    return False, score_rs, True
                 elif action == "menu":
                     show_loading_screen()
                     blue_slime_group.empty()
@@ -1404,7 +1422,7 @@ def run_level(screen, screen_width, screen_height):
                     score = 0
                     gold = 0
                     game_win = False
-                    return True, score_rs # hoặc chuyển về menu chính nếu có
+                    return True, score_rs, False # hoặc chuyển về menu chính nếu có
 
         if paused:
             action = pause_dialog.draw(screen)
@@ -1430,7 +1448,7 @@ def run_level(screen, screen_width, screen_height):
                 score = 0
                 gold = 0
                 game_win = False
-                return True, score_rs  # hoặc chuyển về menu chính nếu có
+                return True, score_rs, False  # hoặc chuyển về menu chính nếu có
             elif action == 'restart':
                 blue_slime_group.empty()
                 green_slime_group.empty()

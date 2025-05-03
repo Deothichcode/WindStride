@@ -447,12 +447,20 @@ class Game:
                     self.screen.blit(number_text, number_rect)
                     
                     # Vẽ sao đánh giá
-                    if score_rs == 0:
+                    if score_rs[level_number-1] == 0:
                         star = pygame.transform.scale(self.level_star, (150, 70))
                         star_rect = star.get_rect(center=(level_x + level_width // 2, level_y + 140))
                         self.screen.blit(star, star_rect)
-                    elif score_rs == 3:
+                    elif score_rs[level_number-1] == 3:
                         star = pygame.transform.scale(self.level_star3, (150, 70))
+                        star_rect = star.get_rect(center=(level_x + level_width // 2, level_y + 140))
+                        self.screen.blit(star, star_rect)
+                    elif score_rs[level_number-1] == 2:
+                        star = pygame.transform.scale(self.level_star2, (150, 70))
+                        star_rect = star.get_rect(center=(level_x + level_width // 2, level_y + 140))
+                        self.screen.blit(star, star_rect)
+                    elif score_rs[level_number-1] == 1:
+                        star = pygame.transform.scale(self.level_star1, (150, 70))
                         star_rect = star.get_rect(center=(level_x + level_width // 2, level_y + 140))
                         self.screen.blit(star, star_rect)
                 else:
@@ -482,6 +490,15 @@ class Game:
                         if self.current_level == 1:
                             import levels.level1 as level1
                             self.preloaded_level = level1
+                        elif self.current_level == 2:
+                            import levels.level2 as level2
+                            self.preloaded_level = level2
+                        elif self.current_level == 3:
+                            import levels.level3 as level3
+                            self.preloaded_level = level3
+                        elif self.current_level == 4:
+                            import levels.level4 as level4
+                            self.preloaded_level = level4
 
                         # Hiển thị màn hình loading
                         self.show_loading_screen()
@@ -1052,7 +1069,7 @@ class Game:
             
         # Khởi tạo biến để lưu trữ level đã pre-load
         self.preloaded_level = None
-        self.score_rs = 0 
+        self.score_rs = [0,0,0,0,0,0]
         
         while True:
             # Tính toán delta time
@@ -1105,9 +1122,29 @@ class Game:
                     self.music_playing = False
                 
                 # Sử dụng level đã pre-load nếu có
-                if self.preloaded_level and self.current_level == 1:
+                if self.preloaded_level and self.current_level >= 1:
                     # Chạy level1 và nhận kết quả
-                    return_to_select_level, self.score_rs = self.preloaded_level.run_level(self.screen, self.screen_width, self.screen_height)
+                    return_to_select_level, score_tmp, check_continue = self.preloaded_level.run_level(self.screen, self.screen_width, self.screen_height)
+                    if score_tmp != 0:
+                        if self.score_rs[self.current_level-1] < score_tmp:
+                            self.score_rs[self.current_level-1] = score_tmp
+                        self.current_level += 1
+                        self.unlocked_levels.append(self.current_level)
+                    if check_continue:
+                        if self.current_level == 1:
+                            import levels.level1 as level1
+                            self.preloaded_level = level1
+                        elif self.current_level == 2:
+                            import levels.level2 as level2
+                            self.preloaded_level = level2
+                        elif self.current_level == 3:
+                            import levels.level3 as level3
+                            self.preloaded_level = level3
+                        elif self.current_level == 4:
+                            import levels.level4 as level4
+                            self.preloaded_level = level4
+                        self.show_loading_screen()
+                        self.state = "game"
                     if return_to_select_level:
                         # Quay về menu
                         self.state = "level_select"
