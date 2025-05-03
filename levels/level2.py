@@ -273,7 +273,18 @@ class Button():
 class Player():
     def __init__(self, x, y):
         self.reset(x,y)
-
+        self.images_attack_right = []
+        self.images_attack_left = []
+        for num in range (1,10):
+            image_attack_right = pygame.image.load (f'assests/character/male/attack1/at{num}.png')
+            #image_attack_right = pygame.transform.scale(image_attack_right, (74 ,66))
+            image_attack_left = pygame.transform.flip(image_attack_right,True, False )
+            self.images_attack_right.append(image_attack_right)
+            self.images_attack_left.append (image_attack_left)
+        self.attack_frame = 0
+        self.attack_timer = 0
+        self.attack_cooldown = 0
+        self.attacking = False
     def update(self,game_over, game_win):
         dx = 0
         dy = 0
@@ -300,7 +311,13 @@ class Player():
                 dx += 4
                 self.counter += 1
                 self.direction = 1
-                
+            
+            if key[pygame.K_z] and not self.attacking and self.attack_cooldown == 0:
+                self.attacking = True
+                self.attack_frame = 0
+                self.attack_timer = 0
+                self.attack_cooldown = 20  # delay giữa 2 đòn
+    
             # Xử lý animation
             if not (key[pygame.K_LEFT] or key[pygame.K_RIGHT]) and not self.in_air:
                 self.counter = 0
@@ -332,14 +349,49 @@ class Player():
                     self.image = self.images_right[self.index]
                 if self.direction == -1:
                     self.image = self.images_left[self.index]
-
+            # Animation tấn công
+            if self.attacking:
+                self.attack_timer += 1
+                if self.attack_timer >= 1 :  # điều chỉnh thời gian hiện mỗi frame
+                    self.attack_timer = 0
+                    self.attack_frame += 1
+                    if self.attack_frame >= len(self.images_attack_right):
+                        self.attacking = False
+                        self.attack_frame = 0
+                    else:
+                        if self.direction == 1:
+                            self.image = self.images_attack_right[self.attack_frame]
+                        else:
+                            self.image = self.images_attack_left[self.attack_frame]
+                
+            # Hồi đòn
+            if self.attack_cooldown > 0:
+                self.attack_cooldown -= 1        
             # Áp dụng trọng lực
             self.vel_y += 1
             if self.vel_y > 10:
                 self.vel_y = 10
             dy += self.vel_y
+            
+            # Tấn công quái vật
+            if self.attacking and self.attack_frame <= 8:
+                attack_rect = pygame.Rect(self.rect)
+                if self.direction == 1:
+                    attack_rect.x += 20
+                    attack_rect.width += 30
+                else:
+                    attack_rect.x -= 30
+                    attack_rect.width += 30
 
-            # Xử lý va chạm với địa hình
+                enemy_groups = [blue_slime_group, green_slime_group, skeleton_group]
+                for group in enemy_groups:
+                    for enemy in group:
+                        if attack_rect.colliderect(enemy.hitbox):
+                            enemy.kill()
+                            blue_slime_group.update()
+                            green_slime_group.update()
+                            skeleton_group.update()
+                # Xử lý va chạm với địa hình
             for tile in world.tile_list:
                 # Va chạm theo chiều dọc
                 if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
@@ -430,7 +482,7 @@ class Player():
         # Load frames chạy
         for num in range(1,7):
             img_right = pygame.image.load(f'assests/character/male/run/run{num}.png')
-            img_right = pygame.transform.scale(img_right, (37, 64))
+            img_right = pygame.transform.scale(img_right, (41, 68))
             img_left = pygame.transform.flip(img_right, True, False)
             self.images_right.append(img_right)
             self.images_left.append(img_left)
@@ -438,14 +490,14 @@ class Player():
         # Load frames nhảy
         for num in range(1,8):
             img_jump_right = pygame.image.load(f'assests/character/male/jump/j{num}.png')
-            img_jump_right = pygame.transform.scale(img_jump_right, (37,64))
+            img_jump_right = pygame.transform.scale(img_jump_right, (41,68))
             img_jump_left = pygame.transform.flip(img_jump_right, True, False)
             self.images_jump_right.append(img_jump_right)
             self.images_jump_left.append(img_jump_left)
 
         # Load frame đứng yên
         self.idle_image_right = pygame.image.load('assests/character/male/idle/Idle.png')
-        self.idle_image_right = pygame.transform.scale(self.idle_image_right, (37, 64))
+        self.idle_image_right = pygame.transform.scale(self.idle_image_right, (41, 68))
         self.idle_image_left = pygame.transform.flip(self.idle_image_right, True, False)
         self.image = self.idle_image_right
         
@@ -771,7 +823,6 @@ class World():
         # Vẽ và cập nhật các enemy
         for enemy in self.enemies:
             enemy.update()
-            enemy.draw(screen)
 
 
 class Enemy(pygame.sprite.Sprite):
@@ -862,7 +913,8 @@ class Enemy(pygame.sprite.Sprite):
     def update(self):
         dx = 0
         dy = 0
-        
+        self.hitbox.x = self.rect.x + 10
+        self.hitbox.y = self.rect.y + 5
         # Xử lý animation
         self.counter += 1
         if self.counter >= self.animation_cooldown:
@@ -923,7 +975,6 @@ class Enemy(pygame.sprite.Sprite):
             # Cập nhật vị trí
             self.rect.x += dx
             self.rect.y += dy
-        
         # Cập nhật hitbox
         self.hitbox.x = self.rect.x + 10
         self.hitbox.y = self.rect.y + 5
@@ -1291,7 +1342,7 @@ def run_level(screen, screen_width, screen_height):
         lava_group.draw(screen)
         coin_group.draw(screen)
         rune_group.draw(screen)
-        player.draw()  
+        #player.draw()  
         if pause_button.draw():
             paused = True
         if not paused:
@@ -1397,10 +1448,10 @@ def run_level(screen, screen_width, screen_height):
                     score = 0
                     gold = 0
                     game_win = False
-                    # import levels.level2 as lv2
-                    # screen = pygame.display.set_mode((screen_width, screen_height))
-                    show_loading_screen()
-                    # run_lv = lv2.run_level(screen, screen_width, screen_height)
+                    #import levels.level3 as lv3
+                    #screen = pygame.display.set_mode((screen_width, screen_height))
+                    #show_loading_screen()
+                    #run_lv = lv3.run_level(screen, screen_width, screen_height)
                     return False, score_rs, True
                 elif action == "menu":
                     show_loading_screen()

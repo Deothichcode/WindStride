@@ -273,31 +273,18 @@ class Button():
 class Player():
     def __init__(self, x, y):
         self.reset(x,y)
-        self.images_attack_right = [
-                                    'assests/character/male/attack1/at2.png',
-                                    'assests/character/male/attack1/at3.png',
-                                    'assests/character/male/attack1/at4.png',
-                                    'assests/character/male/attack1/at5.png',
-                                    'assests/character/male/attack1/at6.png',
-                                    'assests/character/male/attack1/at7.png',
-                                    'assests/character/male/attack1/at9.png',
-                                    'assests/character/male/attack1/at10.png'
-                                    ]  # danh sách Surface
-        self.images_attack_left = [
-                                    'assests/character/male/attack1/at2.png',
-                                    'assests/character/male/attack1/at3.png',
-                                    'assests/character/male/attack1/at4.png',
-                                    'assests/character/male/attack1/at5.png',
-                                    'assests/character/male/attack1/at6.png',
-                                    'assests/character/male/attack1/at7.png',
-                                    'assests/character/male/attack1/at9.png',
-                                    'assests/character/male/attack1/at10.png']
-        self.images_attack_right = [pygame.image.load(path).convert_alpha() for path in self.images_attack_right]
-        self.images_attack_left = [pygame.image.load(path).convert_alpha() for path in self.images_attack_left]
-        self.attacking = False
+        self.images_attack_right = []
+        self.images_attack_left = []
+        for num in range (1,10):
+            image_attack_right = pygame.image.load (f'assests/character/male/attack1/at{num}.png')
+            #image_attack_right = pygame.transform.scale(image_attack_right, (74 ,66))
+            image_attack_left = pygame.transform.flip(image_attack_right,True, False )
+            self.images_attack_right.append(image_attack_right)
+            self.images_attack_left.append (image_attack_left)
         self.attack_frame = 0
         self.attack_timer = 0
         self.attack_cooldown = 0
+        self.attacking = False
     def update(self,game_over, game_win):
         dx = 0
         dy = 0
@@ -365,7 +352,7 @@ class Player():
             # Animation tấn công
             if self.attacking:
                 self.attack_timer += 1
-                if self.attack_timer >= 10 :  # điều chỉnh thời gian hiện mỗi frame
+                if self.attack_timer >= 1 :  # điều chỉnh thời gian hiện mỗi frame
                     self.attack_timer = 0
                     self.attack_frame += 1
                     if self.attack_frame >= len(self.images_attack_right):
@@ -495,7 +482,7 @@ class Player():
         # Load frames chạy
         for num in range(1,7):
             img_right = pygame.image.load(f'assests/character/male/run/run{num}.png')
-            img_right = pygame.transform.scale(img_right, (37, 64))
+            img_right = pygame.transform.scale(img_right, (41, 68))
             img_left = pygame.transform.flip(img_right, True, False)
             self.images_right.append(img_right)
             self.images_left.append(img_left)
@@ -503,14 +490,14 @@ class Player():
         # Load frames nhảy
         for num in range(1,8):
             img_jump_right = pygame.image.load(f'assests/character/male/jump/j{num}.png')
-            img_jump_right = pygame.transform.scale(img_jump_right, (37,64))
+            img_jump_right = pygame.transform.scale(img_jump_right, (41,68))
             img_jump_left = pygame.transform.flip(img_jump_right, True, False)
             self.images_jump_right.append(img_jump_right)
             self.images_jump_left.append(img_jump_left)
 
         # Load frame đứng yên
         self.idle_image_right = pygame.image.load('assests/character/male/idle/Idle.png')
-        self.idle_image_right = pygame.transform.scale(self.idle_image_right, (37, 64))
+        self.idle_image_right = pygame.transform.scale(self.idle_image_right, (41, 68))
         self.idle_image_left = pygame.transform.flip(self.idle_image_right, True, False)
         self.image = self.idle_image_right
         
@@ -988,9 +975,6 @@ class Enemy(pygame.sprite.Sprite):
             # Cập nhật vị trí
             self.rect.x += dx
             self.rect.y += dy
-            blue_slime_group.update()
-            green_slime_group.update()
-            skeleton_group.update()
         # Cập nhật hitbox
         self.hitbox.x = self.rect.x + 10
         self.hitbox.y = self.rect.y + 5
@@ -1358,7 +1342,7 @@ def run_level(screen, screen_width, screen_height):
         lava_group.draw(screen)
         coin_group.draw(screen)
         rune_group.draw(screen)
-        player.draw()  
+        #player.draw()  
         if pause_button.draw():
             paused = True
         if not paused:
