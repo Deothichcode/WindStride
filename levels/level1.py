@@ -273,7 +273,31 @@ class Button():
 class Player():
     def __init__(self, x, y):
         self.reset(x,y)
-
+        self.images_attack_right = [
+                                    'assests/character/male/attack1/at2.png',
+                                    'assests/character/male/attack1/at3.png',
+                                    'assests/character/male/attack1/at4.png',
+                                    'assests/character/male/attack1/at5.png',
+                                    'assests/character/male/attack1/at6.png',
+                                    'assests/character/male/attack1/at7.png',
+                                    'assests/character/male/attack1/at9.png',
+                                    'assests/character/male/attack1/at10.png'
+                                    ]  # danh sách Surface
+        self.images_attack_left = [
+                                    'assests/character/male/attack1/at2.png',
+                                    'assests/character/male/attack1/at3.png',
+                                    'assests/character/male/attack1/at4.png',
+                                    'assests/character/male/attack1/at5.png',
+                                    'assests/character/male/attack1/at6.png',
+                                    'assests/character/male/attack1/at7.png',
+                                    'assests/character/male/attack1/at9.png',
+                                    'assests/character/male/attack1/at10.png']
+        self.images_attack_right = [pygame.image.load(path).convert_alpha() for path in self.images_attack_right]
+        self.images_attack_left = [pygame.image.load(path).convert_alpha() for path in self.images_attack_left]
+        self.attacking = False
+        self.attack_frame = 0
+        self.attack_timer = 0
+        self.attack_cooldown = 0
     def update(self,game_over, game_win):
         dx = 0
         dy = 0
@@ -300,7 +324,13 @@ class Player():
                 dx += 4
                 self.counter += 1
                 self.direction = 1
-                
+            
+            if key[pygame.K_z] and not self.attacking and self.attack_cooldown == 0:
+                self.attacking = True
+                self.attack_frame = 0
+                self.attack_timer = 0
+                self.attack_cooldown = 20  # delay giữa 2 đòn
+    
             # Xử lý animation
             if not (key[pygame.K_LEFT] or key[pygame.K_RIGHT]) and not self.in_air:
                 self.counter = 0
@@ -332,14 +362,49 @@ class Player():
                     self.image = self.images_right[self.index]
                 if self.direction == -1:
                     self.image = self.images_left[self.index]
-
+            # Animation tấn công
+            if self.attacking:
+                self.attack_timer += 1
+                if self.attack_timer >= 10 :  # điều chỉnh thời gian hiện mỗi frame
+                    self.attack_timer = 0
+                    self.attack_frame += 1
+                    if self.attack_frame >= len(self.images_attack_right):
+                        self.attacking = False
+                        self.attack_frame = 0
+                    else:
+                        if self.direction == 1:
+                            self.image = self.images_attack_right[self.attack_frame]
+                        else:
+                            self.image = self.images_attack_left[self.attack_frame]
+                
+            # Hồi đòn
+            if self.attack_cooldown > 0:
+                self.attack_cooldown -= 1        
             # Áp dụng trọng lực
             self.vel_y += 1
             if self.vel_y > 10:
                 self.vel_y = 10
             dy += self.vel_y
+            
+            # Tấn công quái vật
+            if self.attacking and self.attack_frame <= 8:
+                attack_rect = pygame.Rect(self.rect)
+                if self.direction == 1:
+                    attack_rect.x += 20
+                    attack_rect.width += 30
+                else:
+                    attack_rect.x -= 30
+                    attack_rect.width += 30
 
-            # Xử lý va chạm với địa hình
+                enemy_groups = [blue_slime_group, green_slime_group, skeleton_group]
+                for group in enemy_groups:
+                    for enemy in group:
+                        if attack_rect.colliderect(enemy.hitbox):
+                            enemy.kill()
+                            blue_slime_group.update()
+                            green_slime_group.update()
+                            skeleton_group.update()
+                # Xử lý va chạm với địa hình
             for tile in world.tile_list:
                 # Va chạm theo chiều dọc
                 if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
@@ -771,7 +836,6 @@ class World():
         # Vẽ và cập nhật các enemy
         for enemy in self.enemies:
             enemy.update()
-            enemy.draw(screen)
 
 
 class Enemy(pygame.sprite.Sprite):
@@ -862,7 +926,8 @@ class Enemy(pygame.sprite.Sprite):
     def update(self):
         dx = 0
         dy = 0
-        
+        self.hitbox.x = self.rect.x + 10
+        self.hitbox.y = self.rect.y + 5
         # Xử lý animation
         self.counter += 1
         if self.counter >= self.animation_cooldown:
@@ -923,7 +988,9 @@ class Enemy(pygame.sprite.Sprite):
             # Cập nhật vị trí
             self.rect.x += dx
             self.rect.y += dy
-        
+            blue_slime_group.update()
+            green_slime_group.update()
+            skeleton_group.update()
         # Cập nhật hitbox
         self.hitbox.x = self.rect.x + 10
         self.hitbox.y = self.rect.y + 5
