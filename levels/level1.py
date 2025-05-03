@@ -1124,6 +1124,88 @@ def show_loading_screen():
         screen.blit(tip_text, tip_text.get_rect(center=(screen_with // 2, screen_height - 100)))
         pygame.display.flip()
 
+class PauseDialog():
+    def __init__(self):
+        # Load background cho dialog
+        self.bg = pygame.image.load('assests/gui/PNG/pause/bg.png')
+        self.bg = pygame.transform.scale(self.bg, (500, 300))
+        self.bg_rect = self.bg.get_rect()
+        self.bg_rect.center = (screen_with // 2, screen_height // 2)
+
+        self.buttons = []
+
+        # Cấu hình button
+        button_info = [
+            ("home", 'assests/gui/PNG/btn/menu.png', -120),
+            ("restart", 'assests/gui/PNG/btn/restart.png', 0),
+            ("continue", 'assests/gui/PNG/btn/play.png', 120)
+        ]
+        
+        # Load và setup các buttons với hiệu ứng hover
+        button_scale = 0.4
+        base_y = self.bg_rect.centery - 20
+        
+        # Tạo buttons với 2 trạng thái: normal và hover
+        for name, path, offset_x in button_info:
+            image = pygame.image.load(path)
+            normal_image = pygame.transform.scale(image, (
+                int(image.get_width() * button_scale),
+                int(image.get_height() * button_scale)
+            ))
+            # Scale ảnh hover từ ảnh normal
+            hover_image = pygame.transform.scale(normal_image, (
+                int(normal_image.get_width() * 1.1),
+                int(normal_image.get_height() * 1.1)
+            ))
+            rect = normal_image.get_rect()
+            rect.center = (self.bg_rect.centerx + offset_x, base_y)
+            self.buttons.append({
+                'name': name,
+                'normal': normal_image,
+                'hover': hover_image,
+                'rect': rect,
+                'is_hovered': False
+            })
+        
+        
+        # Text "PAUSE"
+        self.font = pygame.font.Font('assests/font/Arial.ttf', 48)
+        self.text = self.font.render('PAUSE', True, (255, 255, 255))
+        self.text_rect = self.text.get_rect(center=(self.bg_rect.centerx, self.bg_rect.centery - 100))
+
+    def draw(self, screen):
+        # Tạo overlay mờ
+        s = pygame.Surface((screen_with, screen_height))
+        s.set_alpha(128)
+        s.fill((0, 0, 0))
+        screen.blit(s, (0, 0))
+        
+        # Vẽ background dialog
+        screen.blit(self.bg, self.bg_rect)
+        
+        # Vẽ text "PAUSE"
+        screen.blit(self.text, self.text_rect)
+        
+        # Lấy vị trí chuột
+        mouse_pos = pygame.mouse.get_pos()
+        mouse_clicked = pygame.mouse.get_pressed()[0]
+        
+        # Xử lý hover và click cho từng button
+        for btn in self.buttons:
+            if btn['rect'].collidepoint(mouse_pos):
+                btn['is_hovered'] = True
+                # Cập nhật lại rect center sau khi scale
+                hover_rect = btn['hover'].get_rect(center=btn['rect'].center)
+                screen.blit(btn['hover'], hover_rect)
+                btn['rect'] = hover_rect  # cập nhật lại vị trí hitbox
+                if mouse_clicked:
+                    return btn['name']
+            else:
+                btn['is_hovered'] = False
+                screen.blit(btn['normal'], btn['rect'])
+
+        
+        return None
 
 def run_level(screen, screen_width, screen_height):
     global score
@@ -1140,6 +1222,9 @@ def run_level(screen, screen_width, screen_height):
         print(f"Không thể tải nhạc game: {e}")
         game_music = None
     restart_button = Button( 'assests/gui/PNG/btn/restart.png', screen_width *0.5 , screen_height *0.5, 0.5)
+    pause_button = Button('assests/gui/PNG/btn/pause.png', screen_width - 50, 40, 0.25)  # Thêm nút pause
+    pause_dialog = PauseDialog()  # Tạo đối tượng PauseDialog
+    paused = False  # Biến trạng thái pause
     #vòng lặp xử lý sự kiện game
     run = True
     while run:
@@ -1148,72 +1233,111 @@ def run_level(screen, screen_width, screen_height):
         world.draw()
         #draw_grid()
 
-        # Cập nhật và vẽ các enemy
-        blue_slime_group.update()
-        green_slime_group.update()
-        skeleton_group.update()
-
+        # Cập nhật và vẽ các enemy  
         blue_slime_group.draw(screen)
         green_slime_group.draw(screen)
         skeleton_group.draw(screen)
-
         flag_group.draw(screen)
-        flag_group.update()
-
         lava_group.draw(screen)
         coin_group.draw(screen)
-        coin_group.update()
         rune_group.draw(screen)
-        rune_group.update()
 
-        game_over, game_win = player.update(game_over, game_win)
-        # game_over = player.update(game_over)
-        #Restart khi game over
-        if game_over == True:
-            if restart_button.draw():
-                blue_slime_group.empty()
-                green_slime_group.empty()
-                skeleton_group.empty()
-                coin_group.empty()
-                rune_group.empty()
-                flag_group.empty()
-                score_coin = Coin(tile_size - 30, 25, True)  # Đặt is_icon=True
-                coin_group.add(score_coin)
-                score_rune = Rune(tile_size + 130, 25, True)  # Đặt is_icon=True
-                rune_group.add(score_rune)
-                world_data = []
-                world_data = load_level_data(1)
-                world = World(world_data)
-                player.reset(35, screen_height - 210) #Vị trí khởi đầu của nhân vật
-                game_over = False
-                score = 0
-                gold = 0
-        else:        
-            for sprite in coin_group:
-                if pygame.sprite.collide_rect(player, sprite) and not sprite.is_icon:
-                    sprite.kill()
-                    score += 1
-            draw_text('X ' + str(score) + '/3', font_score, white, tile_size - 10, 10)
+        if pause_button.draw():
+            paused = True
+
+        if not paused:
+            blue_slime_group.draw(screen)
+            green_slime_group.draw(screen)
+            skeleton_group.draw(screen)
+            
+            blue_slime_group.update()
+            green_slime_group.update()
+            skeleton_group.update()
+
+
+            flag_group.draw(screen)
+            flag_group.update()
+
+            lava_group.draw(screen)
+            coin_group.draw(screen)
             coin_group.update()
-
-            for sprite in rune_group:
-                if pygame.sprite.collide_rect(player, sprite) and not sprite.is_icon:
-                    sprite.kill()
-                    gold += 1
-            draw_text('X ' + str(gold), font_score, white, tile_size + 150, 10)
+            rune_group.draw(screen)
             rune_group.update()
-        if game_win == True:
-            if game_music:
-                    game_music.stop()
-            action = show_win_popup(screen, score, 3, star_images, screen_width, screen_height)
 
-            if action == "continue":
-                import levels.level2 as lv2
-                screen = pygame.display.set_mode((screen_width, screen_height))
-                show_loading_screen()
-                run_lv = lv2.run_level(screen, screen_width, screen_height)
-                return
-            elif action == "menu":
+            game_over, game_win = player.update(game_over, game_win)
+            # game_over = player.update(game_over)
+            #Restart khi game over
+            if game_over == True:
+                if restart_button.draw():
+                    blue_slime_group.empty()
+                    green_slime_group.empty()
+                    skeleton_group.empty()
+                    coin_group.empty()
+                    rune_group.empty()
+                    flag_group.empty()
+                    score_coin = Coin(tile_size - 30, 25, True)  # Đặt is_icon=True
+                    coin_group.add(score_coin)
+                    score_rune = Rune(tile_size + 130, 25, True)  # Đặt is_icon=True
+                    rune_group.add(score_rune)
+                    world_data = []
+                    world_data = load_level_data(1)
+                    world = World(world_data)
+                    player.reset(35, screen_height - 210) #Vị trí khởi đầu của nhân vật
+                    game_over = False
+                    score = 0
+                    gold = 0
+            else:        
+                for sprite in coin_group:
+                    if pygame.sprite.collide_rect(player, sprite) and not sprite.is_icon:
+                        sprite.kill()
+                        score += 1
+                draw_text('X ' + str(score) + '/3', font_score, white, tile_size - 10, 10)
+                coin_group.update()
+
+                for sprite in rune_group:
+                    if pygame.sprite.collide_rect(player, sprite) and not sprite.is_icon:
+                        sprite.kill()
+                        gold += 1
+                draw_text('X ' + str(gold), font_score, white, tile_size + 150, 10)
+                rune_group.update()
+            if game_win == True:
+                if game_music:
+                        game_music.stop()
+                action = show_win_popup(screen, score, 3, star_images, screen_width, screen_height)
+
+                if action == "continue":
+                    import levels.level2 as lv2
+                    screen = pygame.display.set_mode((screen_width, screen_height))
+                    show_loading_screen()
+                    run_lv = lv2.run_level(screen, screen_width, screen_height)
+                    return
+                elif action == "menu":
+                    show_loading_screen()
+                    blue_slime_group.empty()
+                    green_slime_group.empty()
+                    skeleton_group.empty()
+                    coin_group.empty()
+                    rune_group.empty()
+                    flag_group.empty()
+                    score_coin = Coin(tile_size - 30, 25, True)  # Đặt is_icon=True
+                    coin_group.add(score_coin)
+                    score_rune = Rune(tile_size + 130, 25, True)  # Đặt is_icon=True
+                    rune_group.add(score_rune)
+                    world_data = []
+                    world_data = load_level_data(1)
+                    world = World(world_data)
+                    player.reset(35, screen_height - 210) #Vị trí khởi đầu của nhân vật
+                    score_rs = score
+                    score = 0
+                    gold = 0
+                    game_win = False
+                    return True, score_rs # hoặc chuyển về menu chính nếu có
+
+        if paused:
+            action = pause_dialog.draw(screen)
+            if action == 'home':
+                if game_music:
+                    game_music.stop()
                 show_loading_screen()
                 blue_slime_group.empty()
                 green_slime_group.empty()
@@ -1233,19 +1357,38 @@ def run_level(screen, screen_width, screen_height):
                 score = 0
                 gold = 0
                 game_win = False
-                return True, score_rs # hoặc chuyển về menu chính nếu có
+                return True, score_rs  # hoặc chuyển về menu chính nếu có
+            elif action == 'restart':
+                blue_slime_group.empty()
+                green_slime_group.empty()
+                skeleton_group.empty()
+                coin_group.empty()
+                rune_group.empty()
+                flag_group.empty()
+                score_coin = Coin(tile_size - 30, 25, True)  # Đặt is_icon=True
+                coin_group.add(score_coin)
+                score_rune = Rune(tile_size + 130, 25, True)  # Đặt is_icon=True
+                rune_group.add(score_rune)
+                world_data = []
+                world_data = load_level_data(1)
+                world = World(world_data)
+                player.reset(35, screen_height - 210) #Vị trí khởi đầu của nhân vật
+                game_over = False
+                score = 0
+                gold = 0
+                paused = False
+            elif action == 'continue':
+                paused = False
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 if game_music:
                     game_music.stop()
                 pygame.quit()
-                #sys.exit()
+                return False, score
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    if game_music:
-                        game_music.stop()
-                    pygame.quit()
+                    paused = not paused
                     #sys.exit()
 
         pygame.display.update()
