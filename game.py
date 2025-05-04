@@ -741,8 +741,7 @@ class Game:
         # Các phím điều khiển
         instructions = [
             ["< >:", "Di chuyển"],
-            ["Z:", "Tấn công chiêu 1"],
-            ["C:", "Tấn công chiêu 2"],
+            ["Z C:", "Tấn công"],
             ["^:", "Nhảy"],
             ["Shop:", "Người chơi dùng tiền để đổi vật phẩm"]
         ]
