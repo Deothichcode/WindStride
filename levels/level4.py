@@ -273,6 +273,8 @@ class Button():
 class Player():
     def __init__(self, x, y):
         self.reset(x,y)
+        self.offset_x = 0
+        self.attack_offset_applied = False
         self.images_attack_right = []
         self.images_attack_left = []
         for num in range (1,10):
@@ -281,10 +283,26 @@ class Player():
             image_attack_left = pygame.transform.flip(image_attack_right,True, False )
             self.images_attack_right.append(image_attack_right)
             self.images_attack_left.append (image_attack_left)
+            
+        self.images_attack_right2 = []
+        self.images_attack_left2 = []
+        for num in range (1,8):
+            image_attack_right2 = pygame.image.load (f'assests/character/male/attack2/at_{num}.png')
+            #image_attack_right = pygame.transform.scale(image_attack_right, (74 ,66))
+            image_attack_left2 = pygame.image.load (f'assests/character/male/attack2/at{num}.png')
+            self.images_attack_right2.append(image_attack_right2)
+            self.images_attack_left2.append (image_attack_left2)
+            
         self.attack_frame = 0
         self.attack_timer = 0
         self.attack_cooldown = 0
         self.attacking = False
+        
+        self.attack_frame2 = 0
+        self.attack_timer2 = 0
+        self.attack_cooldown2 = 0
+        self.attacking2 = False
+        
     def update(self,game_over, game_win):
         dx = 0
         dy = 0
@@ -312,14 +330,22 @@ class Player():
                 self.counter += 1
                 self.direction = 1
             
-            if key[pygame.K_z] and not self.attacking and self.attack_cooldown == 0:
+            # Xử lý đòn tấn công 1 
+            if key[pygame.K_z] and not self.attacking and self.attack_cooldown == 0 and not key[pygame.K_x]:
                 self.attacking = True
                 self.attack_frame = 0
                 self.attack_timer = 0
                 self.attack_cooldown = 20  # delay giữa 2 đòn
+                
+            # Xử lý đòn tấn công 2 
+            if key[pygame.K_x] and not self.attacking2 and self.attack_cooldown2 == 0 and not key[pygame.K_z]:
+                self.attacking2 = True
+                self.attack_frame2 = 0
+                self.attack_timer2 = 0
+                self.attack_cooldown2 = 20  # delay giữa 2 đòn    
     
             # Xử lý animation
-            if not (key[pygame.K_LEFT] or key[pygame.K_RIGHT]) and not self.in_air:
+            if not (key[pygame.K_LEFT] or key[pygame.K_RIGHT]) and not self.in_air and not self.attacking and not self.attacking2:
                 self.counter = 0
                 self.index = 0
                 if self.direction == 1:
@@ -349,7 +375,8 @@ class Player():
                     self.image = self.images_right[self.index]
                 if self.direction == -1:
                     self.image = self.images_left[self.index]
-            # Animation tấn công
+                    
+            # Animation tấn công 1 
             if self.attacking:
                 self.attack_timer += 1
                 if self.attack_timer >= 1 :  # điều chỉnh thời gian hiện mỗi frame
@@ -358,15 +385,43 @@ class Player():
                     if self.attack_frame >= len(self.images_attack_right):
                         self.attacking = False
                         self.attack_frame = 0
+                        self.offset_x = 0
                     else:
                         if self.direction == 1:
                             self.image = self.images_attack_right[self.attack_frame]
-                        else:
+                            self.offset_x = 0
+                        elif self.direction == -1:
                             self.image = self.images_attack_left[self.attack_frame]
-                
+                            self.offset_x = 54
+                        else:
+                            self.image = self.images_attack_right[self.attack_frame]
+                            self.offset_x = 0
+                            
+            # Animation tấn công 2
+            if self.attacking2:
+                self.attack_timer2 += 1
+                if self.attack_timer2 >= 1 :  # điều chỉnh thời gian hiện mỗi frame
+                    self.attack_timer2 = 0
+                    self.attack_frame2 += 1
+                    if self.attack_frame2 >= len(self.images_attack_right2):
+                        self.attacking2 = False
+                        self.attack_frame2 = 0
+                    else:
+                        if self.direction == 1:
+                            self.image = self.images_attack_right2[self.attack_frame2]
+                            self.offset_x = 0
+                        elif self.direction == -1:
+                            self.image = self.images_attack_left2[self.attack_frame2] 
+                            self.offset_x = 54   
+                        else:
+                            self.image = self.images_attack_right2[self.attack_frame2]
+                            self.offset_x = 0 
             # Hồi đòn
             if self.attack_cooldown > 0:
-                self.attack_cooldown -= 1        
+                self.attack_cooldown -= 1
+                  
+            if self.attack_cooldown2 > 0:
+                self.attack_cooldown2 -= 1            
             # Áp dụng trọng lực
             self.vel_y += 1
             if self.vel_y > 10:
@@ -374,7 +429,7 @@ class Player():
             dy += self.vel_y
             
             # Tấn công quái vật
-            if self.attacking and self.attack_frame <= 8:
+            if (self.attacking and self.attack_frame <= 10) or (self.attacking2 and self.attack_frame2 <= 7):
                 attack_rect = pygame.Rect(self.rect)
                 if self.direction == 1:
                     attack_rect.x += 20
@@ -388,9 +443,6 @@ class Player():
                     for enemy in group:
                         if attack_rect.colliderect(enemy.hitbox):
                             enemy.kill()
-                            blue_slime_group.update()
-                            green_slime_group.update()
-                            skeleton_group.update()
                 # Xử lý va chạm với địa hình
             for tile in world.tile_list:
                 # Va chạm theo chiều dọc
@@ -1326,6 +1378,7 @@ def run_level(screen, screen_width, screen_height):
     pause_button = Button('assests/gui/PNG/btn/pause.png', screen_width - 50, 40, 0.25)  # Thêm nút pause
     pause_dialog = PauseDialog()  # Tạo đối tượng PauseDialog
     paused = False  # Biến trạng thái pause
+    game_over = False
     #vòng lặp xử lý sự kiện game
     run = True
     while run:
@@ -1448,10 +1501,6 @@ def run_level(screen, screen_width, screen_height):
                     score = 0
                     gold = 0
                     game_win = False
-                    import levels.level3 as lv3
-                    screen = pygame.display.set_mode((screen_width, screen_height))
-                    show_loading_screen()
-                    run_lv = lv3.run_level(screen, screen_width, screen_height)
                     return False, score_rs, True
                 elif action == "menu":
                     show_loading_screen()

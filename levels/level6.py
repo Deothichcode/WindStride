@@ -1123,7 +1123,7 @@ class Flag(pygame.sprite.Sprite):
 
 # Hàm để tải dữ liệu level từ file
 def load_level_data(self):
-    level_file = f'levels/level.data/level2_data'
+    level_file = f'levels/level.data/level6_data'
     try:
         if path.exists(level_file):
             pickle_in = open(level_file, 'rb')

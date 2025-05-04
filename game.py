@@ -741,7 +741,8 @@ class Game:
         # Các phím điều khiển
         instructions = [
             ["< >:", "Di chuyển"],
-            ["Z:", "Tấn công"],
+            ["Z:", "Tấn công chiêu 1"],
+            ["C:", "Tấn công chiêu 2"],
             ["^:", "Nhảy"],
             ["Shop:", "Người chơi dùng tiền để đổi vật phẩm"]
         ]
@@ -1143,6 +1144,12 @@ class Game:
                         elif self.current_level == 4:
                             import levels.level4 as level4
                             self.preloaded_level = level4
+                        elif self.current_level == 5:
+                            import levels.level5 as level5
+                            self.preloaded_level = level5
+                        elif self.current_level == 6:
+                            import levels.level6 as level6
+                            self.preloaded_level = level6    
                         self.show_loading_screen()
                         self.state = "game"
                     if return_to_select_level:
