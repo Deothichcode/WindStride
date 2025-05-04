@@ -741,7 +741,7 @@ class Game:
         # Các phím điều khiển
         instructions = [
             ["< >:", "Di chuyển"],
-            ["Z C:", "Tấn công"],
+            ["Z X:", "Tấn công"],
             ["^:", "Nhảy"],
             ["Shop:", "Người chơi dùng tiền để đổi vật phẩm"]
         ]
@@ -1129,7 +1129,7 @@ class Game:
                         if self.score_rs[self.current_level-1] < score_tmp:
                             self.score_rs[self.current_level-1] = score_tmp
                         self.current_level += 1
-                        if not self.unlocked_levels.count(self.current_level) == 0: self.unlocked_levels.append(self.current_level)
+                        if self.unlocked_levels.count(self.current_level) == 0: self.unlocked_levels.append(self.current_level)
                     if check_continue:
                         if self.current_level == 1:
                             import levels.level1 as level1

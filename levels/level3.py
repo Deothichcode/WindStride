@@ -53,7 +53,7 @@ except pygame.error:
     print("Không thể tải icon!")
 
 #load ảnh
-background_img = pygame.image.load('assests/background/PNG/game_background_2/game_background_2.png')
+background_img = pygame.image.load('assests/background/PNG/game_background_3/game_background_3.png')
 background_img = pygame.transform.scale(background_img, (screen_with, screen_height))
 #Ảnh số sao nhận được khi chơi xong
 star_images = [
@@ -253,21 +253,62 @@ class AnimatedObject:
         screen.blit(self.image, self.rect)
 class Button():
     def __init__(self, image, x, y, scale=1.0):
-        self.image = pygame.image.load(image).convert_alpha()
-        width = int(self.image.get_width() * scale)
-        height = int(self.image.get_height() * scale)
-        self.image = pygame.transform.scale(self.image, (width, height))
+        self.original_image = pygame.image.load(image).convert_alpha()
+        width = int(self.original_image.get_width() * scale)
+        height = int(self.original_image.get_height() * scale)
+        self.normal_image = pygame.transform.scale(self.original_image, (width, height))
+        self.hover_image = pygame.transform.scale(self.original_image, (int(width * 1.1), int(height * 1.1)))  # 10% larger on hover
+        self.image = self.normal_image
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
+        self.clicked = False
+        self.hovered = False
+
     def draw(self):
         action = False
         pos = pygame.mouse.get_pos()
+        
+        # Check if mouse is hovering over button
         if self.rect.collidepoint(pos):
-            if pygame.mouse.get_pressed()[0] == 1 and self.clicked == False:
+            self.hovered = True
+            self.image = self.hover_image
+            # Adjust position to keep center when scaled
+            center = self.rect.center
+            self.rect = self.image.get_rect()
+            self.rect.center = center
+        else:
+            self.hovered = False
+            self.image = self.normal_image
+            # Reset to normal size
+            center = self.rect.center
+            self.rect = self.image.get_rect()
+            self.rect.center = center
+            
+        if self.rect.collidepoint(pos):
+            if pygame.mouse.get_pressed()[0] == 1 and not self.clicked:
                 action = True
                 self.clicked = True
+                # Small visual feedback when clicked
+                self.image = pygame.transform.scale(self.original_image, 
+                    (int(self.rect.width * 0.95), int(self.rect.height * 0.95)))
+                center = self.rect.center
+                self.rect = self.image.get_rect()
+                self.rect.center = center
+                
         if pygame.mouse.get_pressed()[0] == 0:
             self.clicked = False
+            # Return to hover state if mouse is still over button
+            if self.hovered:
+                self.image = self.hover_image
+                center = self.rect.center
+                self.rect = self.image.get_rect()
+                self.rect.center = center
+            else:
+                self.image = self.normal_image
+                center = self.rect.center
+                self.rect = self.image.get_rect()
+                self.rect.center = center
+                
         screen.blit(self.image, self.rect)
         return action
 class Player():
@@ -277,12 +318,20 @@ class Player():
         self.attack_offset_applied = False
         self.images_attack_right = []
         self.images_attack_left = []
+        self.attack_offsets_left = []
         for num in range (1,10):
-            image_attack_right = pygame.image.load (f'assests/character/male/attack1/at{num}.png')
-            #image_attack_right = pygame.transform.scale(image_attack_right, (74 ,66))
-            image_attack_left = pygame.transform.flip(image_attack_right,True, False )
-            self.images_attack_right.append(image_attack_right)
-            self.images_attack_left.append (image_attack_left)
+            img = pygame.image.load(f'assests/character/male/attack1/at{num}.png')
+            img = pygame.transform.scale(img, (int(img.get_width()*68/img.get_height()), 68))
+            
+            # Frame tấn công phải
+            self.images_attack_right.append(img)
+            
+            # Frame tấn công trái (flip)
+            img_left = pygame.transform.flip(img, True, False)
+            self.images_attack_left.append(img_left)
+        
+            # Tính toán offset X cần dịch chuyển để giữ chân nhân vật
+            self.attack_offsets_left.append(img.get_width() - 41)  # 41 là width idle
             
         self.images_attack_right2 = []
         self.images_attack_left2 = []
@@ -514,14 +563,20 @@ class Player():
         screen.blit(self.image, (sprite_x, sprite_y))
         return game_over, game_win
     def draw(self):
-        sprite_width = 47
-        sprite_height = 74
-        sprite_x = self.rect.x - (sprite_width - self.width) // 2
-        sprite_y = self.rect.y - (sprite_height - self.height) // 2
+        if self.attacking and self.direction == -1:
+        # Lấy offset cho frame hiện tại
+            offset_x = self.attack_offsets_left[self.attack_frame]
+            
+            # Vị trí vẽ = vị trí idle - offset
+            sprite_x = self.rect.x - (41 - self.width)//2 - offset_x
+            sprite_y = self.rect.y - (68 - self.height)
+        else:
+            # Vẽ bình thường
+            sprite_x = self.rect.x - (41 - self.width) // 2
+            sprite_y = self.rect.y - (68 - self.height)
         
-        # Vẽ nhân vật và hitbox
         screen.blit(self.image, (sprite_x, sprite_y))
-        #pygame.draw.rect(screen, (255, 0, 0), self.rect, 2)
+
 
     def reset(self, x ,y):
         self.images_right = [] #list frame di sang phai
@@ -1009,7 +1064,7 @@ class Enemy(pygame.sprite.Sprite):
             self.rect.y += dy
             
             # Kiểm tra đổi hướng sau 3 lần nhảy
-            if self.on_ground and self.jump_count >= self.max_jumps:
+            if self.on_ground and self.jump_count >= 2:
                 self.direction *= -1
                 self.jump_count = 0
             
