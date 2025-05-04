@@ -1501,10 +1501,6 @@ def run_level(screen, screen_width, screen_height):
                     score = 0
                     gold = 0
                     game_win = False
-                    # import levels.level2 as lv2
-                    # screen = pygame.display.set_mode((screen_width, screen_height))
-                    # show_loading_screen()
-                    # run_lv = lv2.run_level(screen, screen_width, screen_height)
                     return False, score_rs, True
                 elif action == "menu":
                     show_loading_screen()
