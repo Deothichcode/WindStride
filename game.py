@@ -499,6 +499,12 @@ class Game:
                         elif self.current_level == 4:
                             import levels.level4 as level4
                             self.preloaded_level = level4
+                        elif self.current_level == 5:
+                            import levels.level5 as level5
+                            self.preloaded_level = level5
+                        elif self.current_level == 6:
+                            import levels.level6 as level6
+                            self.preloaded_level = level6
 
                         # Hiển thị màn hình loading
                         self.show_loading_screen()
