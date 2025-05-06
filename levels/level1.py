@@ -3,14 +3,7 @@ from pygame.locals import * # type: ignore
 import pickle
 from os import path
 import random
-
 import io
-# import sys
-
-# if hasattr(sys.stdout, "buffer"):
-#     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-# sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-
 pygame.init()
 
 clock = pygame.time.Clock()
@@ -188,69 +181,7 @@ def draw_grid():
     # Vẽ đường dọc
     for line in range(vertical_lines):
         pygame.draw.line(screen, (255,255,255), (line * tile_size, 0), (line * tile_size, screen_height))
-
-#lop chuyen dong cua vat the
-class AnimatedObject:
-    def __init__(self, x, y, image_path, scale, object_type, animation_speed=10, move_range=3):
-        self.images = [] #list chua khung hinh
-        self.index = 0 #thu tu khung hinh
-        self.counter = 0 #thoi gian lam moi khung hinh
-        # dieu chinh toc do lam moi frame
-        if object_type in ['coin', 'rune']:
-            self.animation_speed = animation_speed*1.5
-        elif object_type in ['flag']:
-            self.animation_speed = animation_speed*2.5 #lam cham toc do lam moi frame cua la co
-        else:
-            self.animation_speed = animation_speed
         
-        self.object_type = object_type
-        self.original_y = y
-        self.original_x = x
-        self.direction = 1  
-        self.move_counter = 0
-        self.move_range = move_range
-        
-        # load animation
-        if object_type == 'coin':
-            for i in range(1, 5): 
-                img = pygame.image.load(f'assests/objects/Item/coin/{i}.png')
-                img = pygame.transform.scale(img, scale)
-                self.images.append(img)
-        elif object_type == 'rune':
-            for i in range(1, 5):  
-                img = pygame.image.load(f'assests/objects/Item/rune/{i}.png')
-                img = pygame.transform.scale(img, scale)
-                self.images.append(img)
-        elif object_type == 'flag':
-            for i in range(1, 5):  
-                img = pygame.image.load(f'assests/objects/Item/flag/{i}.png')
-                img = pygame.transform.scale(img, scale)
-                self.images.append(img)
-        elif object_type == 'plant':
-            for i in range(0, 90): 
-                img = pygame.image.load(f'assests/objects/Plant Animations/Plant 1/Plant1_{i:05d}.png')
-                img = pygame.transform.scale(img, scale)
-                self.images.append(img)
-        
-        self.image = self.images[0]
-        self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
-    
-    def update(self):
-        # Update animation frame
-        self.counter += 1
-        if self.counter > self.animation_speed:
-            self.counter = 0
-            self.index += 1
-            if self.index >= len(self.images):
-                self.index = 0
-            self.image = self.images[self.index]
-        
-        # Removed slime movement code to make slimes static
-    
-    def draw(self):
-        screen.blit(self.image, self.rect)
 class Button():
     def __init__(self, image, x, y, scale=1.0):
         self.original_image = pygame.image.load(image).convert_alpha()
@@ -311,46 +242,10 @@ class Button():
                 
         screen.blit(self.image, self.rect)
         return action
+    
 class Player():
     def __init__(self, x, y):
         self.reset(x,y)
-        self.offset_x = 0
-        self.attack_offset_applied = False
-        self.images_attack_right = []
-        self.images_attack_left = []
-        self.attack_offsets_left = []
-        for num in range (1,10):
-            img = pygame.image.load(f'assests/character/male/attack1/at{num}.png')
-            img = pygame.transform.scale(img, (int(img.get_width()*68/img.get_height()), 68))
-            
-            # Frame tấn công phải
-            self.images_attack_right.append(img)
-            
-            # Frame tấn công trái (flip)
-            img_left = pygame.transform.flip(img, True, False)
-            self.images_attack_left.append(img_left)
-        
-            # Tính toán offset X cần dịch chuyển để giữ chân nhân vật
-            self.attack_offsets_left.append(img.get_width() - 41)  # 41 là width idle
-            
-        self.images_attack_right2 = []
-        self.images_attack_left2 = []
-        for num in range (1,8):
-            image_attack_right2 = pygame.image.load (f'assests/character/male/attack2/at_{num}.png')
-            #image_attack_right = pygame.transform.scale(image_attack_right, (74 ,66))
-            image_attack_left2 = pygame.image.load (f'assests/character/male/attack2/at{num}.png')
-            self.images_attack_right2.append(image_attack_right2)
-            self.images_attack_left2.append (image_attack_left2)
-            
-        self.attack_frame = 0
-        self.attack_timer = 0
-        self.attack_cooldown = 0
-        self.attacking = False
-        
-        self.attack_frame2 = 0
-        self.attack_timer2 = 0
-        self.attack_cooldown2 = 0
-        self.attacking2 = False
         
     def update(self,game_over, game_win):
         dx = 0
@@ -438,13 +333,10 @@ class Player():
                     else:
                         if self.direction == 1:
                             self.image = self.images_attack_right[self.attack_frame]
-                            self.offset_x = 0
                         elif self.direction == -1:
                             self.image = self.images_attack_left[self.attack_frame]
-                            self.offset_x = 54
                         else:
                             self.image = self.images_attack_right[self.attack_frame]
-                            self.offset_x = 0
                             
             # Animation tấn công 2
             if self.attacking2:
@@ -458,13 +350,10 @@ class Player():
                     else:
                         if self.direction == 1:
                             self.image = self.images_attack_right2[self.attack_frame2]
-                            self.offset_x = 0
                         elif self.direction == -1:
-                            self.image = self.images_attack_left2[self.attack_frame2] 
-                            self.offset_x = 54   
+                            self.image = self.images_attack_left2[self.attack_frame2]    
                         else:
-                            self.image = self.images_attack_right2[self.attack_frame2]
-                            self.offset_x = 0 
+                            self.image = self.images_attack_right2[self.attack_frame2] 
             # Hồi đòn
             if self.attack_cooldown > 0:
                 self.attack_cooldown -= 1
@@ -492,7 +381,7 @@ class Player():
                     for enemy in group:
                         if attack_rect.colliderect(enemy.hitbox):
                             enemy.kill()
-                # Xử lý va chạm với địa hình
+            # Xử lý va chạm với địa hình
             for tile in world.tile_list:
                 # Va chạm theo chiều dọc
                 if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
@@ -520,27 +409,6 @@ class Player():
             # Cập nhật vị trí
             self.rect.x += dx
             self.rect.y += dy
-        else:
-        # Chạy animation chết
-            if self.death_index < len(self.dead_image):
-                self.death_counter += 1
-                if self.death_counter >= 10:  # số frame chờ giữa 2 hình
-                    self.image = self.dead_image[self.death_index]
-                    self.death_index += 1
-                    self.death_counter = 0
-           
-            else:
-            # Animation đã xong giữ frame cuối
-                self.image = self.dead_image[-1]
-                if self.vel_y > 10:  # Giới hạn tốc độ rơi tối đa
-                    self.vel_y = 10
-                self.rect.y += self.vel_y
-
-                for tile in world.tile_list:
-                    if tile[1].colliderect(self.rect.x, self.rect.y, self.width, self.height):
-                        # Dừng rơi khi chạm đất
-                        self.rect.bottom = tile[1].top
-                        self.vel_y = 0  
 
         # Giới hạn màn hình
         if self.rect.left < 0:
@@ -559,33 +427,30 @@ class Player():
         sprite_x = self.rect.x - (sprite_width - self.width) // 2
         sprite_y = self.rect.y - (sprite_height - self.height) // 2
         
-        # Vẽ nhân vật và hitbox
+        # Vẽ nhân vật
         screen.blit(self.image, (sprite_x, sprite_y))
         return game_over, game_win
-    def draw(self):
-        if self.attacking and self.direction == -1:
-        # Lấy offset cho frame hiện tại
-            offset_x = self.attack_offsets_left[self.attack_frame]
-            
-            # Vị trí vẽ = vị trí idle - offset
-            sprite_x = self.rect.x - (41 - self.width)//2 - offset_x
-            sprite_y = self.rect.y - (68 - self.height)
-        else:
-            # Vẽ bình thường
-            sprite_x = self.rect.x - (41 - self.width) // 2
-            sprite_y = self.rect.y - (68 - self.height)
-        
-        screen.blit(self.image, (sprite_x, sprite_y))
-
-
     def reset(self, x ,y):
         self.images_right = [] #list frame di sang phai
         self.images_left = [] #list frame di sang trai
         self.images_jump_right = [] #list frame nhảy sang phải
         self.images_jump_left = [] #list frame nhảy sang trái
+        self.images_attack_right = []
+        self.images_attack_left = []
+        self.images_attack_right2 = []
+        self.images_attack_left2 = []
+        
         self.index = 0 #thu tu frame
         self.counter = 0 #thoi gian lam moi frame
+        self.attack_frame = 0
+        self.attack_timer = 0
+        self.attack_cooldown = 0
+        self.attacking = False
         
+        self.attack_frame2 = 0
+        self.attack_timer2 = 0
+        self.attack_cooldown2 = 0
+        self.attacking2 = False
         # Load frames chạy
         for num in range(1,7):
             img_right = pygame.image.load(f'assests/character/male/run/run{num}.png')
@@ -608,13 +473,20 @@ class Player():
         self.idle_image_left = pygame.transform.flip(self.idle_image_right, True, False)
         self.image = self.idle_image_right
         
-        # Nhân vật game over 
-        self.dead_image = [pygame.image.load('assests/character/male/dead/1.png'),
-                           pygame.image.load('assests/character/male/dead/2.png'),
-                           pygame.image.load('assests/character/male/dead/3.png'),
-                           pygame.image.load('assests/character/male/dead/4.png')]
-        self.death_index = 0
-        self.death_counter = 0
+        #Load các frame tấn công
+        for num in range (1,10):
+            image_attack_right = pygame.image.load(f'assests/character/male/attack1/at{num}.png')
+            # Frame tấn công phải
+            self.images_attack_right.append(image_attack_right)
+            # Frame tấn công trái (flip)
+            image_attack_left = pygame.transform.flip(image_attack_right, True, False)
+            self.images_attack_left.append(image_attack_left)
+
+        for num in range (1,8):
+            image_attack_right2 = pygame.image.load (f'assests/character/male/attack2/at_{num}.png')
+            image_attack_left2 = pygame.transform.flip(image_attack_right2, True, False)
+            self.images_attack_right2.append(image_attack_right2)
+            self.images_attack_left2.append (image_attack_left2)
         # Tạo hitbox nhỏ hơn sprite
         self.width = 22  
         self.height = 55 
@@ -660,15 +532,6 @@ class World():
         green_slime_img = pygame.image.load('assests/objects/Creep/Green_Slime/idle/1.png') # Green slime
         skeleton_img = pygame.image.load('assests/objects/Creep/Skeleton/idle/1.png') # Skeleton
         # tải các khung hình động cho các đối tượng khác nhau
-        
-        # Các khung hình động cho cờ
-        # flag_frames = []
-        # flag_frames.append(pygame.transform.scale(exit_img, (int(tile_size*1.5), int(tile_size * 2.25))))  # Sử dụng exit_img đã tải làm frame đầu tiên
-        # for i in range(2, 5):
-        #     img = pygame.image.load(f'assests/objects/Item/flag/{i}.png')
-        #     flag_frames.append(pygame.transform.scale(img, (int(tile_size*1.5), int(tile_size * 2.25))))
-        # self.animation_frames['flag'] = flag_frames
-        
         # Các khung hình động cho cây - thêm hoạt ảnh cho cây
         plant_frames = []
         plant_frames.append(pygame.transform.scale(grass_img, (tile_size*3, tile_size*3)))  # Sử dụng grass_img đã tải làm frame đầu tiên
@@ -1004,6 +867,7 @@ class Enemy(pygame.sprite.Sprite):
                 
         return dx, dy
 
+    #Giới hạn di chuyển của enemy
     def check_edge(self):
         ahead_x = self.rect.x + (self.rect.width if self.direction == 1 else -5)
         test_rect = pygame.Rect(ahead_x, self.rect.bottom + 5, 5, 5)
@@ -1088,7 +952,6 @@ class Enemy(pygame.sprite.Sprite):
         
     def draw(self, screen):
         screen.blit(self.image, self.rect)
-        #pygame.draw.rect(screen, (255, 0, 0), self.hitbox, 2)
 
 
 class Lava(pygame.sprite.Sprite):
@@ -1450,7 +1313,6 @@ def run_level(screen, screen_width, screen_height):
         lava_group.draw(screen)
         coin_group.draw(screen)
         rune_group.draw(screen)
-        #player.draw()  
         if pause_button.draw():
             paused = True
         if not paused:

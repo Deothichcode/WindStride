@@ -189,68 +189,6 @@ def draw_grid():
     for line in range(vertical_lines):
         pygame.draw.line(screen, (255,255,255), (line * tile_size, 0), (line * tile_size, screen_height))
 
-#lop chuyen dong cua vat the
-class AnimatedObject:
-    def __init__(self, x, y, image_path, scale, object_type, animation_speed=10, move_range=3):
-        self.images = [] #list chua khung hinh
-        self.index = 0 #thu tu khung hinh
-        self.counter = 0 #thoi gian lam moi khung hinh
-        # dieu chinh toc do lam moi frame
-        if object_type in ['coin', 'rune']:
-            self.animation_speed = animation_speed*1.5
-        elif object_type in ['flag']:
-            self.animation_speed = animation_speed*2.5 #lam cham toc do lam moi frame cua la co
-        else:
-            self.animation_speed = animation_speed
-        
-        self.object_type = object_type
-        self.original_y = y
-        self.original_x = x
-        self.direction = 1  
-        self.move_counter = 0
-        self.move_range = move_range
-        
-        # load animation
-        if object_type == 'coin':
-            for i in range(1, 5): 
-                img = pygame.image.load(f'assests/objects/Item/coin/{i}.png')
-                img = pygame.transform.scale(img, scale)
-                self.images.append(img)
-        elif object_type == 'rune':
-            for i in range(1, 5):  
-                img = pygame.image.load(f'assests/objects/Item/rune/{i}.png')
-                img = pygame.transform.scale(img, scale)
-                self.images.append(img)
-        elif object_type == 'flag':
-            for i in range(1, 5):  
-                img = pygame.image.load(f'assests/objects/Item/flag/{i}.png')
-                img = pygame.transform.scale(img, scale)
-                self.images.append(img)
-        elif object_type == 'plant':
-            for i in range(0, 90): 
-                img = pygame.image.load(f'assests/objects/Plant Animations/Plant 1/Plant1_{i:05d}.png')
-                img = pygame.transform.scale(img, scale)
-                self.images.append(img)
-        
-        self.image = self.images[0]
-        self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
-    
-    def update(self):
-        # Update animation frame
-        self.counter += 1
-        if self.counter > self.animation_speed:
-            self.counter = 0
-            self.index += 1
-            if self.index >= len(self.images):
-                self.index = 0
-            self.image = self.images[self.index]
-        
-        # Removed slime movement code to make slimes static
-    
-    def draw(self):
-        screen.blit(self.image, self.rect)
 class Button():
     def __init__(self, image, x, y, scale=1.0):
         self.original_image = pygame.image.load(image).convert_alpha()
