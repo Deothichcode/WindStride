@@ -72,6 +72,67 @@ def draw_stars(screen, score, max_score, x, y):
     star_count = get_star_count(score, max_score)
     screen.blit(star_images[star_count], (x, y))
 
+class Button():
+    def __init__(self, image, x, y, scale=1.0):
+        self.original_image = pygame.image.load(image).convert_alpha()
+        width = int(self.original_image.get_width() * scale)
+        height = int(self.original_image.get_height() * scale)
+        self.normal_image = pygame.transform.scale(self.original_image, (width, height))
+        self.hover_image = pygame.transform.scale(self.original_image, (int(width * 1.1), int(height * 1.1)))  # 10% larger on hover
+        self.image = self.normal_image
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
+        self.clicked = False
+        self.hovered = False
+
+    def draw(self):
+        action = False
+        pos = pygame.mouse.get_pos()
+        
+        # Check if mouse is hovering over button
+        if self.rect.collidepoint(pos):
+            self.hovered = True
+            self.image = self.hover_image
+            # Adjust position to keep center when scaled
+            center = self.rect.center
+            self.rect = self.image.get_rect()
+            self.rect.center = center
+        else:
+            self.hovered = False
+            self.image = self.normal_image
+            # Reset to normal size
+            center = self.rect.center
+            self.rect = self.image.get_rect()
+            self.rect.center = center
+            
+        if self.rect.collidepoint(pos):
+            if pygame.mouse.get_pressed()[0] == 1 and not self.clicked:
+                action = True
+                self.clicked = True
+                # Small visual feedback when clicked
+                self.image = pygame.transform.scale(self.original_image, 
+                    (int(self.rect.width * 0.95), int(self.rect.height * 0.95)))
+                center = self.rect.center
+                self.rect = self.image.get_rect()
+                self.rect.center = center
+                
+        if pygame.mouse.get_pressed()[0] == 0:
+            self.clicked = False
+            # Return to hover state if mouse is still over button
+            if self.hovered:
+                self.image = self.hover_image
+                center = self.rect.center
+                self.rect = self.image.get_rect()
+                self.rect.center = center
+            else:
+                self.image = self.normal_image
+                center = self.rect.center
+                self.rect = self.image.get_rect()
+                self.rect.center = center
+                
+        screen.blit(self.image, self.rect)
+        return action
+    
 #You win
 def show_win_popup(screen, score, max_score, star_images, screen_width, screen_height):
     popup_width = 500
@@ -182,67 +243,6 @@ def draw_grid():
     for line in range(vertical_lines):
         pygame.draw.line(screen, (255,255,255), (line * tile_size, 0), (line * tile_size, screen_height))
         
-class Button():
-    def __init__(self, image, x, y, scale=1.0):
-        self.original_image = pygame.image.load(image).convert_alpha()
-        width = int(self.original_image.get_width() * scale)
-        height = int(self.original_image.get_height() * scale)
-        self.normal_image = pygame.transform.scale(self.original_image, (width, height))
-        self.hover_image = pygame.transform.scale(self.original_image, (int(width * 1.1), int(height * 1.1)))  # 10% larger on hover
-        self.image = self.normal_image
-        self.rect = self.image.get_rect()
-        self.rect.center = (x, y)
-        self.clicked = False
-        self.hovered = False
-
-    def draw(self):
-        action = False
-        pos = pygame.mouse.get_pos()
-        
-        # Check if mouse is hovering over button
-        if self.rect.collidepoint(pos):
-            self.hovered = True
-            self.image = self.hover_image
-            # Adjust position to keep center when scaled
-            center = self.rect.center
-            self.rect = self.image.get_rect()
-            self.rect.center = center
-        else:
-            self.hovered = False
-            self.image = self.normal_image
-            # Reset to normal size
-            center = self.rect.center
-            self.rect = self.image.get_rect()
-            self.rect.center = center
-            
-        if self.rect.collidepoint(pos):
-            if pygame.mouse.get_pressed()[0] == 1 and not self.clicked:
-                action = True
-                self.clicked = True
-                # Small visual feedback when clicked
-                self.image = pygame.transform.scale(self.original_image, 
-                    (int(self.rect.width * 0.95), int(self.rect.height * 0.95)))
-                center = self.rect.center
-                self.rect = self.image.get_rect()
-                self.rect.center = center
-                
-        if pygame.mouse.get_pressed()[0] == 0:
-            self.clicked = False
-            # Return to hover state if mouse is still over button
-            if self.hovered:
-                self.image = self.hover_image
-                center = self.rect.center
-                self.rect = self.image.get_rect()
-                self.rect.center = center
-            else:
-                self.image = self.normal_image
-                center = self.rect.center
-                self.rect = self.image.get_rect()
-                self.rect.center = center
-                
-        screen.blit(self.image, self.rect)
-        return action
-    
 class Player():
     def __init__(self, x, y):
         self.reset(x,y)

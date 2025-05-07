@@ -1,11 +1,8 @@
-import sys #Nhập mô-đun sys, cho phép bạn tương tác với các tham số và chức năng của hệ thống.
-import pygame # type: ignore
-from pygame.locals import* # type: ignore
+import sys 
+import pygame 
+from pygame.locals import* 
 import random
-import math
-import webbrowser  # Thêm thư viện webbrowser để mở trang web
-
-# Thiết lập mã hóa UTF-8 cho đầu ra console
+import webbrowser 
 import io
 import sys
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
@@ -25,8 +22,8 @@ class Button:
     def draw(self):
         # Lấy vị trí chuột
         mouse_pos = pygame.mouse.get_pos()
-        mouse_clicked = pygame.mouse.get_pressed()[0]  # Nút chuột trái
-        current_time = pygame.time.get_ticks()  # Lấy thời gian hiện tại
+        mouse_clicked = pygame.mouse.get_pressed()[0]
+        current_time = pygame.time.get_ticks() 
         
         # Vẽ nút lên màn hình
         self.game.screen.blit(self.image, self.rect.topleft)
@@ -40,7 +37,6 @@ class Button:
             hover_rect = hover_img.get_rect(center=self.rect.center)
             self.game.screen.blit(hover_img, hover_rect.topleft)
             
-            # Kiểm tra sự kiện click và cooldown
             button_cooldown = 400  # 400ms = 0.4 giây
             if mouse_clicked and not self.clicked and current_time - self.last_click_time > button_cooldown:
                 self.clicked = True
