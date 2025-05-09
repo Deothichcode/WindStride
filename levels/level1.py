@@ -48,6 +48,18 @@ except pygame.error:
 #load ảnh
 background_img = pygame.image.load('assests/background/PNG/game_background_2/game_background_2.png')
 background_img = pygame.transform.scale(background_img, (screen_with, screen_height))
+
+#load sound
+try:
+    jump_music = pygame.mixer.Sound('assests/sfx/gamesfx/playersfx/jump.wav')
+    attack_music = pygame.mixer.Sound('assests/sfx/gamesfx/playersfx/female/normal-attack.mp3')
+    jump_music.set_volume(1.5)  # Đặt âm lượng mặc định 
+    attack_music.set_volume(0.3)
+except pygame.error as e:
+    print(f"Không thể tải nhạc game: {e}")
+    attack_music = None
+    jump_music = None
+
 #Ảnh số sao nhận được khi chơi xong
 star_images = [
     pygame.image.load("assests/gui/PNG/level_select/star_4.png").convert_alpha(),
@@ -66,11 +78,6 @@ def get_star_count(score, max_score):
         return 3
     else:
         return 0
-
-#Vẽ sao     
-def draw_stars(screen, score, max_score, x, y):
-    star_count = get_star_count(score, max_score)
-    screen.blit(star_images[star_count], (x, y))
 
 class Button():
     def __init__(self, image, x, y, scale=1.0):
@@ -263,6 +270,7 @@ class Player():
                 self.in_air = True
                 self.counter = 0
                 self.index = 0
+                jump_music.play()
                 
             # Xử lý di chuyển trái/phải
             if key[pygame.K_LEFT]:
@@ -280,6 +288,7 @@ class Player():
                 self.attack_frame = 0
                 self.attack_timer = 0
                 self.attack_cooldown = 20  # delay giữa 2 đòn
+                attack_music.play()
                 
             # Xử lý đòn tấn công 2 
             if key[pygame.K_x] and not self.attacking2 and self.attack_cooldown2 == 0 and not key[pygame.K_z]:
@@ -287,6 +296,7 @@ class Player():
                 self.attack_frame2 = 0
                 self.attack_timer2 = 0
                 self.attack_cooldown2 = 20  # delay giữa 2 đòn    
+                attack_music.play()
     
             # Xử lý animation
             if not (key[pygame.K_LEFT] or key[pygame.K_RIGHT]) and not self.in_air and not self.attacking and not self.attacking2:
@@ -732,8 +742,6 @@ class World():
         for i, tile in enumerate(self.animated_tiles):
             img, rect, tile_type = tile
             
-            # if tile_type == 'flag':
-            #     self.animated_tiles[i] = (self.animation_frames['flag'][self.animation_index % len(self.animation_frames['flag'])], rect, tile_type)
             if tile_type == 'plant':
                 plant_index = (pygame.time.get_ticks() // 50) % len(self.animation_frames['plant'])  # Sử dụng thời gian thực để animation mượt mà và nhanh hơn
                 self.animated_tiles[i] = (self.animation_frames['plant'][plant_index], rect, tile_type)
@@ -1288,7 +1296,9 @@ def run_level(screen, screen_width, screen_height):
     # Khởi tạo âm thanh
     try:
         game_music = pygame.mixer.Sound('assests/sfx/menusfx/NinjaSchool.mp3')
+        coin_music = pygame.mixer.Sound('assests/sfx/gamesfx/objectsfx/coin.wav')
         game_music.set_volume(0.7)  # Đặt âm lượng mặc định 
+        coin_music.set_volume(0.4)
         game_music.play(-1)  # Phát nhạc lặp lại
     except pygame.error as e:
         print(f"Không thể tải nhạc game: {e}")
@@ -1385,6 +1395,7 @@ def run_level(screen, screen_width, screen_height):
                     if pygame.sprite.collide_rect(player, sprite) and not sprite.is_icon:
                         sprite.kill()
                         score += 1
+                        coin_music.play()
                 draw_text('X ' + str(score) + '/3', font_score, white, tile_size - 10, 10)
                 coin_group.update()
 
@@ -1392,6 +1403,7 @@ def run_level(screen, screen_width, screen_height):
                     if pygame.sprite.collide_rect(player, sprite) and not sprite.is_icon:
                         sprite.kill()
                         gold += 1
+                        coin_music.play()
                 draw_text('X ' + str(gold), font_score, white, tile_size + 150, 10)
                 rune_group.update()
             if game_win == True:
