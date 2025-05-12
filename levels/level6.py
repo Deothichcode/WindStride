@@ -1204,6 +1204,120 @@ def show_loading_screen():
         screen.blit(tip_text, tip_text.get_rect(center=(screen_with // 2, screen_height - 100)))
         pygame.display.flip()
 
+def show_continue_screen():
+        # Tải hình ảnh cho loading screen
+        try:
+            loadbar_bg = pygame.image.load('assests/gui/PNG/load_bar/bg.png').convert_alpha()
+            loadbar_1 = pygame.image.load('assests/gui/PNG/load_bar/1.png').convert_alpha()
+            loadbar_2 = pygame.image.load('assests/gui/PNG/load_bar/2.png').convert_alpha()
+            loadbar_3 = pygame.image.load('assests/gui/PNG/load_bar/3.png').convert_alpha()
+            loading_text = pygame.image.load('assests/gui/PNG/load_bar/text.png').convert_alpha()
+            continue_text = pygame.image.load('assests/gui/PNG/load_bar/continue.png').convert_alpha()
+        except pygame.error as e:
+            print(f"Không thể tải hình ảnh loading bar: {e}")
+            return
+        
+        # Scale hình ảnh nếu cần
+        bar_width = 600
+        bar_height = 40
+        
+        loadbar_bg = pygame.transform.scale(loadbar_bg, (bar_width, bar_height))
+        loadbar_1 = pygame.transform.scale(loadbar_1, (bar_width, bar_height))
+        loadbar_2 = pygame.transform.scale(loadbar_2, (bar_width, bar_height))
+        loadbar_3 = pygame.transform.scale(loadbar_3, (bar_width, bar_height))
+        loading_text = pygame.transform.scale(loading_text, (400, 70))
+        continue_text = pygame.transform.scale(continue_text, (400, 300))
+        
+        # Vị trí trung tâm màn hình
+        bar_x = screen_with // 2 - bar_width // 2
+        bar_y = screen_height // 2 - bar_height // 2
+        text_x = screen_with // 2 - loading_text.get_width() // 2
+        text_y = bar_y - loading_text.get_height() - 20
+        
+        # Thiết lập thời gian loading
+        loading_time = 3.0  # 3 giây
+        start_time = pygame.time.get_ticks()
+        current_time = start_time
+        
+        while (current_time - start_time) / 1000.0 < loading_time:
+            # Xử lý sự kiện trong khi loading (cho phép thoát game)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    # sys.exit()
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    return
+            
+            # Tính toán progress (0-100%)
+            progress = min(100, ((current_time - start_time) / 1000.0) / loading_time * 100)
+            
+            # Vẽ màn hình đen
+            screen.fill((0, 0, 0))
+            
+            # Vẽ text "Loading..."
+            screen.blit(loading_text, (text_x, text_y))
+            
+            # Vẽ loadbar background
+            screen.blit(loadbar_bg, (bar_x, bar_y))
+            
+            # Vẽ loadbar progress dựa vào % hoàn thành
+            if progress < 33:
+                # Hiển thị lần lượt 1/3 đầu thanh loading
+                progress_width = int(bar_width * progress / 33)
+                loadbar_crop = loadbar_1.subsurface((0, 0, progress_width, bar_height))
+                screen.blit(loadbar_crop, (bar_x, bar_y))
+            elif progress < 66:
+                # Hiển thị đầy đủ 1/3 đầu và một phần của 1/3 giữa
+                screen.blit(loadbar_1, (bar_x, bar_y))
+                progress_width = int(bar_width * (progress - 33) / 33)
+                loadbar_crop = loadbar_2.subsurface((0, 0, progress_width, bar_height))
+                screen.blit(loadbar_crop, (bar_x, bar_y))
+            else:
+                # Hiển thị đầy đủ 2/3 đầu và một phần của 1/3 cuối
+                screen.blit(loadbar_1, (bar_x, bar_y))
+                screen.blit(loadbar_2, (bar_x, bar_y))
+                progress_width = int(bar_width * (progress - 66) / 34)
+                loadbar_crop = loadbar_3.subsurface((0, 0, progress_width, bar_height))
+                screen.blit(loadbar_crop, (bar_x, bar_y))
+            
+            # Hiển thị % loading
+            percent_text = font_small.render(f"{int(progress)}%", True, white)
+            percent_rect = percent_text.get_rect(center=(screen_with // 2, bar_y + bar_height + 30))
+            screen.blit(percent_text, percent_rect)
+            
+            screen.blit(continue_text, (screen_with - 400, screen_height // 2))
+
+            tips = [
+                "Chúc mừng bạn đã vượt qua hết các màn chơi!!!","Cảm ơn bạn đã đồng hành cùng chúng tôi các màn mới sẽ được cập nhật trong tương lai."
+            ]
+            current_tip = tips[0]
+            tip_text = font_small2.render(current_tip, True, (200, 200, 200))
+            screen.blit(tip_text, tip_text.get_rect(center=(screen_with // 2, screen_height - 125)))
+            current_tip1 = tips[1]
+            tip_text1 = font_small2.render(current_tip1, True, (200, 200, 200))
+            screen.blit(tip_text1, tip_text1.get_rect(center=(screen_with // 2, screen_height - 100)))
+            
+            # Cập nhật màn hình
+            pygame.display.flip()
+            
+            # Cập nhật thời gian hiện tại
+            current_time = pygame.time.get_ticks()
+            
+            # Giới hạn FPS
+            clock.tick(60)
+
+        # Hiển thị frame cuối cùng với loading 100%
+        screen.fill((0, 0, 0))
+        screen.blit(loading_text, (text_x, text_y))
+        screen.blit(loadbar_bg, (bar_x, bar_y))
+        screen.blit(loadbar_1, (bar_x, bar_y))
+        screen.blit(loadbar_2, (bar_x, bar_y))
+        screen.blit(loadbar_3, (bar_x, bar_y))
+        percent_text = font_small.render("100%", True, white)
+        screen.blit(percent_text, percent_rect)
+        screen.blit(tip_text, tip_text.get_rect(center=(screen_with // 2, screen_height - 100)))
+        pygame.display.flip()
+
 class PauseDialog():
     def __init__(self):
         # Load background cho dialog
@@ -1430,6 +1544,7 @@ def run_level(screen, screen_width, screen_height):
                     score = 0
                     gold = 0
                     game_win = False
+                    show_continue_screen()
                     return False, score_rs, True
                 elif action == "menu":
                     show_loading_screen()
