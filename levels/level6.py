@@ -1545,7 +1545,7 @@ def run_level(screen, screen_width, screen_height):
                     gold = 0
                     game_win = False
                     show_continue_screen()
-                    return False, score_rs, True
+                    return False, score_rs, False
                 elif action == "menu":
                     show_loading_screen()
                     blue_slime_group.empty()
